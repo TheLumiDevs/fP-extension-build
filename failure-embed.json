@@ -1,0 +1,10 @@
+{
+  "content": "Vencord build failed!",
+  "embeds": [
+    {
+      "title": "Build Failed",
+      "description": "The Vencord build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.\n## Joke\n```txt\n${{ steps.random_joke.outputs.joke }}\n```",
+      "color": 15158332
+    }
+  ]
+}

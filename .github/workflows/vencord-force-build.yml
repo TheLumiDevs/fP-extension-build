@@ -1,9 +1,18 @@
-name: Vencord fakeProfile auto build
+name: Vencord fakeProfile force build
 
 on:
-  schedule:
-    - cron: "0 * * * *"
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force a build'
+        required: true
+        type: boolean
+        default: false
+      force_release:
+        description: 'Create a pre-release'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -14,11 +23,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@v4.2.2
 
       - name: Checkout Vencord
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
           repository: Vendicated/Vencord
           path: Vencord
@@ -32,42 +40,17 @@ jobs:
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
           echo "commit_author_url=https://github.com/$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
 
-      - name: Cache last commit SHA
-        uses: actions/cache@v4
-        with:
-          path: last_commit_sha
-          key: ${{ runner.os }}-last-commit-sha
-
-      - name: Compare with cached commit
-        id: check_update
-        run: |
-          if [ -f last_commit_sha ]; then
-            CACHED_SHA=$(cat last_commit_sha)
-            if [ "$CACHED_SHA" == "${{ steps.last_commit.outputs.commit_sha }}" ]; then
-              echo "updated=false" >> $GITHUB_OUTPUT
-            else
-              echo "updated=true" >> $GITHUB_OUTPUT
-              echo "${{ steps.last_commit.outputs.commit_sha }}" > last_commit_sha
-            fi
-          else
-            echo "updated=true" >> $GITHUB_OUTPUT
-            echo "${{ steps.last_commit.outputs.commit_sha }}" > last_commit_sha
-          fi
-
       - name: Clone fakeProfile plugin
-        if: steps.check_update.outputs.updated == 'true'
+        if: github.event.inputs.force_build == 'true'
         run: |
           mkdir -p Vencord/src/plugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git Vencord/src/plugins/fakeProfile
 
-      - name: Setup pnpm
-        if: steps.check_update.outputs.updated == 'true'
-        uses: pnpm/action-setup@v4
-
       - name: Build
-        if: steps.check_update.outputs.updated == 'true'
+        if: github.event.inputs.force_build == 'true'
         run: |
           cd Vencord
+          npm i -g pnpm
           pnpm install
           pnpm buildWeb
 
@@ -76,32 +59,33 @@ jobs:
         run: echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Assets
-        if: steps.check_update.outputs.updated == 'true'
+        if: github.event.inputs.force_release == 'true'
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_url=$(gh release create ${{ github.run_id }} \
-            --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }}" \
+            --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }} (Forced Build)" \
             --notes "
           ### Last Commit Details
           - **Author:** [${{ steps.last_commit.outputs.commit_author }}](${{ steps.last_commit.outputs.commit_author_url }})
           - **Message:** [${{ steps.last_commit.outputs.commit_message }}](https://github.com/${{ github.repository }}/commit/${{ steps.last_commit.outputs.commit_sha }})
           " \
+            --prerelease \
             Vencord/dist/extension-chrome.zip Vencord/dist/extension-firefox.zip Vencord/dist/Vencord.user.js)
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
 
       - name: Get random quote
+        if: github.event.inputs.force_release == 'true'
         id: random_quote
-        if: steps.check_update.outputs.updated == 'true'
         run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
-        if: steps.check_update.outputs.updated == 'true'
+        if: github.event.inputs.force_release == 'true'
         uses: SARISIA/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "fakeProfile extension & userscript has new complete build!!!"
+          title: "fakeProfile extension & userscript has new complete build!!! (Forced Build)"
           description: |
             ## Build Info
             > - Commit
@@ -139,4 +123,3 @@ jobs:
             ${{ steps.random_joke.outputs.joke }}
             ```
           color: 0xe74c3c
-

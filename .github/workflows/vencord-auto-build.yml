@@ -1,0 +1,143 @@
+name: Vencord fakeProfile auto build
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Vencord
+        uses: actions/checkout@v3
+        with:
+          repository: Vendicated/Vencord
+          path: Vencord
+
+      - name: Get last commit info
+        id: last_commit
+        run: |
+          cd Vencord
+          echo "::set-output name=commit_sha::$(git rev-parse HEAD)"
+          echo "::set-output name=commit_author::$(git log -1 --pretty=%an)"
+          echo "::set-output name=commit_message::$(git log -1 --pretty=%B)"
+
+      - name: Cache last commit SHA
+        uses: actions/cache@v3
+        with:
+          path: last_commit_sha
+          key: ${{ runner.os }}-last-commit-sha
+
+      - name: Compare with cached commit
+        id: check_update
+        run: |
+          if [ -f last_commit_sha ]; then
+            CACHED_SHA=$(cat last_commit_sha)
+            if [ "$CACHED_SHA" == "${{ steps.last_commit.outputs.commit_sha }}" ]; then
+              echo "::set-output name=updated::false"
+            else
+              echo "::set-output name=updated::true"
+              echo "${{ steps.last_commit.outputs.commit_sha }}" > last_commit_sha
+            fi
+          else
+            echo "::set-output name=updated::true"
+            echo "${{ steps.last_commit.outputs.commit_sha }}" > last_commit_sha
+          fi
+
+      - name: Clone fakeProfile plugin
+        if: steps.check_update.outputs.updated == 'true'
+        run: |
+          mkdir -p Vencord/src/plugins
+          git clone https://github.com/TheLumiDevs/fakeProfile.git Vencord/src/plugins/fakeProfile
+
+      - name: Build
+        if: steps.check_update.outputs.updated == 'true'
+        run: |
+          cd Vencord
+          npm i -g pnpm
+          pnpm install
+          pnpm buildWeb
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        if: steps.check_update.outputs.updated == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_id }}
+          release_name: Release ${{ github.run_id }}
+          draft: false
+          prerelease: false
+
+      - name: Upload to Release
+        uses: actions/upload-release-asset@v1
+        if: steps.check_update.outputs.updated == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Vencord/dist/extension-chrome.zip
+          asset_name: extension-chrome.zip
+          asset_content_type: application/zip
+
+      - name: Upload to Release
+        uses: actions/upload-release-asset@v1
+        if: steps.check_update.outputs.updated == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Vencord/dist/extension-firefox.zip
+          asset_name: extension-firefox.zip
+          asset_content_type: application/zip
+
+      - name: Upload to Release
+        uses: actions/upload-release-asset@v1
+        if: steps.check_update.outputs.updated == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Vencord/dist/Vencord.user.js
+          asset_name: Vencord.user.js
+          asset_content_type: application/javascript
+
+      - name: Send Discord Notification
+        if: steps.check_update.outputs.updated == 'true'
+        uses: tsickert/discord-webhook@v5
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: "New Vencord build available!"
+          embeds: |
+            [
+              {
+                "title": "fakeProfile extension & userscript has new complete build!!!",
+                "description": "## Build Info\n> - Commit\n>  - Code: [`${{ steps.last_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Title: [${{ steps.last_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Author: [${{ steps.last_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_commit.outputs.commit_author }})\n## Download\n> - Chrome Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-chrome.zip)**\n> - Firefox Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-firefox.zip)**\n> - Userscript: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/Vencord.user.js)**\n## Quete\n```txt\n'''Random devenloper quete'''\n```",
+                "color": 3066993,
+                "author": {
+                  "name": "Lumi",
+                  "icon_url": "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
+                },
+                "footer": {
+                  "text": "Build time",
+                  "icon_url": "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
+                }
+              }
+            ]
+      - name: Send failure notification
+        if: failure()
+        uses: tsickert/discord-webhook@v5
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: "Vencord build failed!"
+          embeds: |
+            [
+              {
+                "title": "Build Failed",
+                "description": "The Vencord build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.",
+                "color": 15158332
+              }
+            ]

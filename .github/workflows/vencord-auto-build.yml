@@ -23,49 +23,30 @@ jobs:
           repository: Vendicated/Vencord
           path: Vencord
 
-      - name: Get last commit info
-        id: last_commit
+      - name: Get last commit info from this repo
+        id: last_commit_user
+        run: |
+          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      - name: Get last Vencord commit info
+        id: last_vencord_commit
         run: |
           cd Vencord
           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
-          echo "commit_author_url=https://github.com/$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-
-      - name: Cache last commit SHA
-        uses: actions/cache@v4
-        with:
-          path: last_commit_sha
-          key: ${{ runner.os }}-last-commit-sha
-
-      - name: Compare with cached commit
-        id: check_update
-        run: |
-          if [ -f last_commit_sha ]; then
-            CACHED_SHA=$(cat last_commit_sha)
-            if [ "$CACHED_SHA" == "${{ steps.last_commit.outputs.commit_sha }}" ]; then
-              echo "updated=false" >> $GITHUB_OUTPUT
-            else
-              echo "updated=true" >> $GITHUB_OUTPUT
-              echo "${{ steps.last_commit.outputs.commit_sha }}" > last_commit_sha
-            fi
-          else
-            echo "updated=true" >> $GITHUB_OUTPUT
-            echo "${{ steps.last_commit.outputs.commit_sha }}" > last_commit_sha
-          fi
 
       - name: Clone fakeProfile plugin
-        if: steps.check_update.outputs.updated == 'true'
         run: |
           mkdir -p Vencord/src/plugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git Vencord/src/plugins/fakeProfile
 
       - name: Setup pnpm
-        if: steps.check_update.outputs.updated == 'true'
         uses: pnpm/action-setup@v4
 
       - name: Build
-        if: steps.check_update.outputs.updated == 'true'
         run: |
           cd Vencord
           pnpm install
@@ -76,7 +57,6 @@ jobs:
         run: echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Assets
-        if: steps.check_update.outputs.updated == 'true'
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,20 +64,22 @@ jobs:
           release_url=$(gh release create ${{ github.run_id }} \
             --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }}" \
             --notes "
-          ### Last Commit Details
-          - **Author:** [${{ steps.last_commit.outputs.commit_author }}](${{ steps.last_commit.outputs.commit_author_url }})
-          - **Message:** [${{ steps.last_commit.outputs.commit_message }}](https://github.com/${{ github.repository }}/commit/${{ steps.last_commit.outputs.commit_sha }})
+          ### Your last commit details
+          - **Author:** ${{ steps.last_commit_user.outputs.commit_author }}
+          - **Message:** [${{ steps.last_commit_user.outputs.commit_message }}](https://github.com/${{ github.repository }}/commit/${{ steps.last_commit_user.outputs.commit_sha }})
+
+          ### Vencord last commit details
+          - **Author:** ${{ steps.last_vencord_commit.outputs.commit_author }}
+          - **Message:** [${{ steps.last_vencord_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_vencord_commit.outputs.commit_sha }})
           " \
             Vencord/dist/extension-chrome.zip Vencord/dist/extension-firefox.zip Vencord/dist/Vencord.user.js)
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
 
       - name: Get random quote
         id: random_quote
-        if: steps.check_update.outputs.updated == 'true'
         run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
-        if: steps.check_update.outputs.updated == 'true'
         uses: SARISIA/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -105,9 +87,9 @@ jobs:
           description: |
             ## Build Info
             > - Commit
-            >  - Code: [`${{ steps.last_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})
-            >  - Title: [${{ steps.last_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})
-            >  - Author: [${{ steps.last_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_commit.outputs.commit_author }})
+            >  - Code: [`${{ steps.last_vencord_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_vencord_commit.outputs.commit_sha }})
+            >  - Title: [${{ steps.last_vencord_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_vencord_commit.outputs.commit_sha }})
+            >  - Author: [${{ steps.last_vencord_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_vencord_commit.outputs.commit_author }})
             ## Download
             > - Chrome Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-chrome.zip)**
             > - Firefox Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-firefox.zip)**

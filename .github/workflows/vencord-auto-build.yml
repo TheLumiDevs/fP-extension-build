@@ -16,17 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Get Random Quote
-        id: random_quote
-        run: |
-          quote=$(shuf -n 1 quotes.txt)
-          echo "quote=$quote" >> $GITHUB_OUTPUT
-
-      - name: Get Random Joke
-        id: random_joke
-        run: |
-          joke=$(shuf -n 1 jokes.txt)
-          echo "joke=$joke" >> $GITHUB_OUTPUT
 
       - name: Checkout Vencord
         uses: actions/checkout@v4.2.2
@@ -41,6 +30,7 @@ jobs:
           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          echo "commit_author_url=https://github.com/$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
 
       - name: Cache last commit SHA
         uses: actions/cache@v4.2.3
@@ -78,14 +68,22 @@ jobs:
           pnpm install
           pnpm buildWeb
 
+      - name: Get Current Time
+        id: current-time
+        run: echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
       - name: Create Release and Upload Assets
         if: steps.check_update.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ github.run_id }} \
-            --title "Release ${{ github.run_id }}" \
-            --notes "Commit Author: ${{ steps.last_commit.outputs.commit_author }} | Commit Message: ${{ steps.last_commit.outputs.commit_message }} | Funny Quote: ${{ steps.random_quote.outputs.quote }} | Random Joke: ${{ steps.random_joke.outputs.joke }}" \
+            --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }}" \
+            --notes "
+          ### Last Commit Details
+          - **Author:** [${{ steps.last_commit.outputs.commit_author }}](${{ steps.last_commit.outputs.commit_author_url }})
+          - **Message:** [${{ steps.last_commit.outputs.commit_message }}](https://github.com/${{ github.repository }}/commit/${{ steps.last_commit.outputs.commit_sha }})
+          " \
             Vencord/dist/extension-chrome.zip Vencord/dist/extension-firefox.zip Vencord/dist/Vencord.user.js
 
       - name: Send Discord Notification

@@ -25,13 +25,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Get last commit info from this repo
-        id: last_commit_user
-        run: |
-          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-          echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
-
       - name: Checkout Vencord
         uses: actions/checkout@v4.2.2
         with:
@@ -73,9 +66,6 @@ jobs:
           release_url=$(gh release create ${{ github.run_id }} \
             --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }} (Forced Build)" \
             --notes "
-          ### Your last commit details
-          - **Author:** ${{ steps.last_commit_user.outputs.commit_author }}
-          - **Message:** [${{ steps.last_commit_user.outputs.commit_message }}](https://github.com/${{ github.repository }}/commit/${{ steps.last_commit_user.outputs.commit_sha }})
 
           ### Vencord last commit details
           - **Author:** ${{ steps.last_vencord_commit.outputs.commit_author }}

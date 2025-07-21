@@ -10,6 +10,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get Random Quote
+        id: random_quote
+        run: |
+          quote=$(shuf -n 1 quotes.txt)
+          echo "::set-output name=quote::$quote"
+
+      - name: Get Random Joke
+        id: random_joke
+        run: |
+          joke=$(shuf -n 1 jokes.txt)
+          echo "::set-output name=joke::$joke"
+
       - name: Checkout Vencord
         uses: actions/checkout@v3
         with:
@@ -115,7 +130,7 @@ jobs:
             [
               {
                 "title": "fakeProfile extension & userscript has new complete build!!!",
-                "description": "## Build Info\n> - Commit\n>  - Code: [`${{ steps.last_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Title: [${{ steps.last_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Author: [${{ steps.last_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_commit.outputs.commit_author }})\n## Download\n> - Chrome Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-chrome.zip)**\n> - Firefox Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-firefox.zip)**\n> - Userscript: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/Vencord.user.js)**\n## Quete\n```txt\n'''Random devenloper quete'''\n```",
+                "description": "## Build Info\n> - Commit\n>  - Code: [`${{ steps.last_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Title: [${{ steps.last_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Author: [${{ steps.last_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_commit.outputs.commit_author }})\n## Download\n> - Chrome Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-chrome.zip)**\n> - Firefox Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-firefox.zip)**\n> - Userscript: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/Vencord.user.js)**\n## Quote\n```txt\n${{ steps.random_quote.outputs.quote }}\n```",
                 "color": 3066993,
                 "author": {
                   "name": "Lumi",
@@ -137,7 +152,8 @@ jobs:
             [
               {
                 "title": "Build Failed",
-                "description": "The Vencord build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.",
+                "description": "The Vencord build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.\n## Joke\n```txt\n${{ steps.random_joke.outputs.joke }}\n```",
                 "color": 15158332
               }
             ]
+

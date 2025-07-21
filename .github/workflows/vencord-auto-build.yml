@@ -74,28 +74,65 @@ jobs:
 
       - name: Create Release and Upload Assets
         if: steps.check_update.outputs.updated == 'true'
+        id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.run_id }} \
+          release_url=$(gh release create ${{ github.run_id }} \
             --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }}" \
             --notes "
           ### Last Commit Details
           - **Author:** [${{ steps.last_commit.outputs.commit_author }}](${{ steps.last_commit.outputs.commit_author_url }})
           - **Message:** [${{ steps.last_commit.outputs.commit_message }}](https://github.com/${{ github.repository }}/commit/${{ steps.last_commit.outputs.commit_sha }})
           " \
-            Vencord/dist/extension-chrome.zip Vencord/dist/extension-firefox.zip Vencord/dist/Vencord.user.js
+            Vencord/dist/extension-chrome.zip Vencord/dist/extension-firefox.zip Vencord/dist/Vencord.user.js)
+          echo "html_url=${release_url}" >> $GITHUB_OUTPUT
+
+      - name: Get random quote
+        id: random_quote
+        if: steps.check_update.outputs.updated == 'true'
+        run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
         if: steps.check_update.outputs.updated == 'true'
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          raw-data: success-embed.json
+          content: "New Vencord build available!"
+          embeds: |
+            [
+              {
+                "title": "fakeProfile extension & userscript has new complete build!!!",
+                "description": "## Build Info\n> - Commit\n>  - Code: [`${{ steps.last_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Title: [${{ steps.last_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_commit.outputs.commit_sha }})\n>  - Author: [${{ steps.last_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_commit.outputs.commit_author }})\n## Download\n> - Chrome Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-chrome.zip)**\n> - Firefox Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-firefox.zip)**\n> - Userscript: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/Vencord.user.js)**\n## Quote\n```txt\n${{ steps.random_quote.outputs.quote }}\n```",
+                "color": 3066993,
+                "author": {
+                  "name": "Lumi",
+                  "icon_url": "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
+                },
+                "footer": {
+                  "text": "Build time",
+                  "icon_url": "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
+                }
+              }
+            ]
+
+      - name: Get random joke
+        id: random_joke
+        if: failure()
+        run: echo "joke=$(shuf -n 1 jokes.txt)" >> $GITHUB_OUTPUT
+
       - name: Send failure notification
         if: failure()
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          raw-data: failure-embed.json
+          content: "Vencord build failed!"
+          embeds: |
+            [
+              {
+                "title": "Build Failed",
+                "description": "The Vencord build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.\n## Joke\n```txt\n${{ steps.random_joke.outputs.joke }}\n```",
+                "color": 15158332
+              }
+            ]
 

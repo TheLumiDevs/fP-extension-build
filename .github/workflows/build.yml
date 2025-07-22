@@ -62,7 +62,7 @@ jobs:
 
       - name: Cache last successful commit SHA
         id: cache-sha
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.3
         with:
           path: last_successful_sha_${{ matrix.project }}.txt
           key: ${{ matrix.project }}-sha-cache
@@ -192,7 +192,7 @@ jobs:
 
       - name: Send Discord Notification
         if: steps.create_release.outputs.tag_name != ''
-        uses: SARISIA/actions-status-discord@v1
+        uses: SARISIA/actions-status-discord@v1.15.3
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
@@ -223,7 +223,7 @@ jobs:
 
       - name: Send failure notification
         if: failure()
-        uses: SARISIA/actions-status-discord@v1
+        uses: SARISIA/actions-status-discord@v1.15.3
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure

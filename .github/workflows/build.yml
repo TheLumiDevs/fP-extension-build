@@ -161,7 +161,7 @@ jobs:
             - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             " \
               $prerelease_flag \
-              ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }})
+              ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }}
           fi
           
           echo "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt

@@ -45,7 +45,7 @@ jobs:
           mkdir -p Vencord/src/plugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git Vencord/src/plugins/fakeProfile
 
-      - name: Build
+      - name: Build extension and userscript (Forced)
         if: github.event.inputs.force_build == 'true'
         run: |
           cd Vencord

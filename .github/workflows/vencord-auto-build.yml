@@ -36,13 +36,11 @@ jobs:
           mkdir -p Vencord/src/plugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git Vencord/src/plugins/fakeProfile
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Build
+      - name: Build extension and userscript
         run: |
           cd Vencord
-          pnpm install
+          npm i -g pnpm
+          pnpm i
           pnpm buildWeb
 
       - name: Get Current Time

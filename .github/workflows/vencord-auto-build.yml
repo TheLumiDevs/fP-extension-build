@@ -14,11 +14,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@v4.1.7
 
       - name: Checkout Vencord
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
         with:
           repository: Vendicated/Vencord
           path: Vencord
@@ -27,16 +26,33 @@ jobs:
         id: last_vencord_commit
         run: |
           cd Vencord
-          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          commit_sha=$(git rev-parse HEAD)
+          echo "commit_sha=$commit_sha" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          echo "tag_name=build-$commit_sha" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view ${{ steps.last_vencord_commit.outputs.tag_name }} >/dev/null 2>&1; then
+            echo "A release with tag ${{ steps.last_vencord_commit.outputs.tag_name }} already exists."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "No release with tag ${{ steps.last_vencord_commit.outputs.tag_name }} found. Creating a new one."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Clone fakeProfile plugin
+        if: steps.check_release.outputs.exists == 'false'
         run: |
           mkdir -p Vencord/src/plugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git Vencord/src/plugins/fakeProfile
 
       - name: Build extension and userscript
+        if: steps.check_release.outputs.exists == 'false'
         run: |
           cd Vencord
           npm i -g pnpm
@@ -44,18 +60,22 @@ jobs:
           pnpm buildWeb
 
       - name: Get Current Time
+        if: steps.check_release.outputs.exists == 'false'
         id: current-time
-        run: echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
+        run: |
+          echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          timestamp=$(date +%s)
+          echo "timestamp=$timestamp" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Assets
+        if: steps.check_release.outputs.exists == 'false'
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          release_url=$(gh release create ${{ github.run_id }} \
+          release_url=$(gh release create ${{ steps.last_vencord_commit.outputs.tag_name }} \
             --title "fakeProfile Vencord ${{ steps.current-time.outputs.date }}" \
             --notes "
-
           ### Vencord last commit details
           - **Author:** ${{ steps.last_vencord_commit.outputs.commit_author }}
           - **Message:** [${{ steps.last_vencord_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_vencord_commit.outputs.commit_sha }})
@@ -63,31 +83,50 @@ jobs:
             Vencord/dist/extension-chrome.zip Vencord/dist/extension-firefox.zip Vencord/dist/Vencord.user.js)
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
 
+      - name: Get direct download URLs
+        if: steps.check_release.outputs.exists == 'false'
+        id: get_download_urls
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_info=$(gh api repos/${{ github.repository }}/releases/tags/${{ steps.last_vencord_commit.outputs.tag_name }})
+          chrome_url=$(echo "$release_info" | jq -r '.assets[] | select(.name == "extension-chrome.zip") | .browser_download_url')
+          firefox_url=$(echo "$release_info" | jq -r '.assets[] | select(.name == "extension-firefox.zip") | .browser_download_url')
+          userscript_url=$(echo "$release_info" | jq -r '.assets[] | select(.name == "Vencord.user.js") | .browser_download_url')
+          echo "chrome_url=$chrome_url" >> $GITHUB_OUTPUT
+          echo "firefox_url=$firefox_url" >> $GITHUB_OUTPUT
+          echo "userscript_url=$userscript_url" >> $GITHUB_OUTPUT
+
       - name: Get random quote
+        if: steps.check_release.outputs.exists == 'false'
         id: random_quote
         run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
+        if: steps.check_release.outputs.exists == 'false'
         uses: SARISIA/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "fakeProfile extension & userscript has new complete build!!!"
+          title: "🎉 fakeProfile extension & userscript has new complete build! 🎉"
           description: |
-            ## Build Info
-            > - Commit
+            ## 📝 Build Info
+            > - **Commit**
             >  - Code: [`${{ steps.last_vencord_commit.outputs.commit_sha }}`](https://github.com/Vendicated/Vencord/commit/${{ steps.last_vencord_commit.outputs.commit_sha }})
             >  - Title: [${{ steps.last_vencord_commit.outputs.commit_message }}](https://github.com/Vendicated/Vencord/commit/${{ steps.last_vencord_commit.outputs.commit_sha }})
             >  - Author: [${{ steps.last_vencord_commit.outputs.commit_author }}](https://github.com/Vendicated/Vencord/commits?author=${{ steps.last_vencord_commit.outputs.commit_author }})
-            ## Download
-            > - Chrome Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-chrome.zip)**
-            > - Firefox Extension: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/extension-firefox.zip)**
-            > - Userscript: **[Click Here](${{ steps.create_release.outputs.html_url }}/download/Vencord.user.js)**
-            ## Quote
+            ## ℹ️ About this build
+            > - **Release**: [${{ steps.current-time.outputs.date }}](${{ steps.create_release.outputs.html_url }})
+            > - **Build**: <t:${{ steps.current-time.outputs.timestamp }}:R>
+            ## 📥 Download
+            > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})**
+            > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})**
+            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})**
+            ## 💬 Quote
             ```txt
             ${{ steps.random_quote.outputs.quote }}
             ```
           color: 0x2ec27c
-          username: Lumi
+          username: Lumi Devs
           avatar_url: "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
 
       - name: Get random joke
@@ -101,12 +140,11 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
-          title: Build Failed
+          title: "😭 Build Failed"
           description: |
             The Vencord build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.
-            ## Joke
+            ## 😹 Joke
             ```txt
             ${{ steps.random_joke.outputs.joke }}
             ```
           color: 0xe74c3c
-

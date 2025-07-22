@@ -199,7 +199,7 @@ jobs:
           description: |
             ## 📝 Build Info
             > - **Commit**
-            >  - Code: [`${{ steps.get_commit_info.outputs.commit_sha }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - SHA: [`${{ steps.get_commit_info.outputs.commit_sha }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - Title: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - Author: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build

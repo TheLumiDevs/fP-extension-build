@@ -209,8 +209,7 @@ jobs:
             ${{ steps.random_quote.outputs.quote }}
             ```
           color: 0x2ec27c
-          username: Lumi Devs
-          avatar_url: "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
+          username: "fakeProfile Extension & Userscript Auto Build"
 
       - name: Get random joke
         if: failure()

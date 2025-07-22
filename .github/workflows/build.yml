@@ -2,7 +2,7 @@ name: Build fakeProfile
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/5 * * * *" # Runs every 5 minutes
   workflow_dispatch:
     inputs:
       project:
@@ -186,7 +186,8 @@ jobs:
             >  - Author: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build
             > - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})
-            > - **Build**: <t:${{ steps.current-time.outputs.timestamp }}:R>
+            > - **Build At**: <t:${{ steps.current-time.outputs.timestamp }}:f> (<t:${{ steps.current-time.outputs.timestamp }}:R>)
+            > - **Project**: ${{ matrix.project }}
             ## 📥 Download
             > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})**
             > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})**
@@ -196,7 +197,6 @@ jobs:
             ${{ steps.random_quote.outputs.quote }}
             ```
           color: 0x2ec27c
-          username: "fakeProfile Extension & Userscript Auto Build"
 
       - name: Get random joke
         if: failure()

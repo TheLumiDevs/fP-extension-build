@@ -13,8 +13,8 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "🎉 New Star! ⭐"
           description: |
-            **${{ github.sender.login }}** just starred the repository!
-            Go give them a follow: ${{ github.sender.html_url }}
+            **${{ github.event.sender.login }}** just starred the repository!
+            Go give them a follow: ${{ github.event.sender.html_url }}
 
             The repository now has **${{ github.repository.stargazers_count }}** stars!
           color: 0xffac33

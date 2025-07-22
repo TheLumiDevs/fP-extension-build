@@ -139,15 +139,32 @@ jobs:
             tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
           fi
 
-          release_url=$(gh release create $tag_name \
-            --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
-            --notes "
-          ### ${{ matrix.project }} last commit details
-          - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
-          - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
-          " \
-            $prerelease_flag \
-            ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }})
+          release_exists=$(gh release view $tag_name --json url -q .url 2>/dev/null)
+
+          if [[ -n "$release_exists" ]]; then
+            echo "Release $tag_name already exists, updating assets and notes."
+            gh release upload $tag_name \
+              ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }} --clobber
+            gh release edit $tag_name \
+              --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
+              --notes "
+            ### ${{ matrix.project }} last commit details
+            - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
+            - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            "
+            release_url=$release_exists
+          else
+            echo "Creating new release $tag_name."
+            release_url=$(gh release create $tag_name \
+              --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
+              --notes "
+            ### ${{ matrix.project }} last commit details
+            - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
+            - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            " \
+              $prerelease_flag \
+              ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }})
+          fi
           
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT

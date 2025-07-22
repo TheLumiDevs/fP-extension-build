@@ -1,0 +1,22 @@
+name: New Star Discord Notification
+on:
+  watch:
+    types: [started]
+
+jobs:
+  discord-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        uses: SARISIA/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🎉 New Star! ⭐"
+          description: |
+            **${{ github.sender.login }}** just starred the repository!
+            Go give them a follow: ${{ github.sender.html_url }}
+
+            The repository now has **${{ github.repository.stargazers_count }}** stars!
+          color: 0xffac33
+          username: "Stargazer Notifier"
+          avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"

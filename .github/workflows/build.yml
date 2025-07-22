@@ -1,0 +1,220 @@
+name: Build fakeProfile
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Which project to build'
+        required: true
+        type: choice
+        options:
+        - all
+        - equicord
+        - vencord
+        default: 'all'
+      release:
+        description: 'Create a release (only for manual runs)'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [equicord, vencord]
+        include:
+          - project: equicord
+            repo: Equicord/Equicord
+            userscript_name: Equicord.user.js
+          - project: vencord
+            repo: Vendicated/Vencord
+            userscript_name: Vencord.user.js
+
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.7
+
+      - name: Checkout ${{ matrix.project }}
+        uses: actions/checkout@v4.1.7
+        with:
+          repository: ${{ matrix.repo }}
+          path: ${{ matrix.project }}
+
+      - name: Get commit info
+        id: get_commit_info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd ${{ matrix.project }}
+          UPSTREAM_SHA=$(git rev-parse HEAD)
+          echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          cd ..
+          
+          LAST_BUILT_TAG=$(gh release list --json tagName,name -L 100 | jq -r --arg proj "${{ matrix.project }}" '.[] | select(.name | startswith("fakeProfile " + $proj)) | .tagName' | head -n 1)
+
+          if [[ -z "$LAST_BUILT_TAG" || (! "$LAST_BUILT_TAG" == build-${{ matrix.project }}-*) ]]; then
+            echo "LAST_BUILT_SHA=none" >> $GITHUB_OUTPUT
+          else
+            echo "LAST_BUILT_SHA=${LAST_BUILT_TAG#build-${{ matrix.project }}-}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Check for new commits on schedule
+        id: check_commits
+        if: github.event_name == 'schedule'
+        run: |
+          if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "${{ steps.get_commit_info.outputs.LAST_BUILT_SHA }}" ]]; then
+            echo "${{ matrix.project }} has no new commits, skipping."
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "New ${{ matrix.project }} commit found, building..."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine if build should proceed
+        id: should_run
+        run: |
+          PROCEED="false"
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            if [[ "${{ steps.check_commits.outputs.should_build }}" == "true" ]]; then
+              PROCEED="true"
+            else
+              echo "${{ matrix.project }} has no new commits, skipping."
+            fi
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.project }}" == "all" || "${{ github.event.inputs.project }}" == "${{ matrix.project }}" ]]; then
+              PROCEED="true"
+            else
+               echo "Skipping ${{ matrix.project }} as it was not selected for this manual run."
+            fi
+          fi
+          echo "decision=${PROCEED}" >> $GITHUB_OUTPUT
+
+      - name: Clone fakeProfile plugin
+        if: steps.should_run.outputs.decision == 'true'
+        run: |
+          mkdir -p ${{ matrix.project }}/src/plugins
+          git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/plugins/fakeProfile
+
+      - name: Build extension and userscript
+        if: steps.should_run.outputs.decision == 'true'
+        run: |
+          cd ${{ matrix.project }}
+          npm i -g pnpm
+          pnpm i
+          pnpm buildWeb
+
+      - name: Get Current Time
+        if: steps.should_run.outputs.decision == 'true'
+        id: current-time
+        run: |
+          echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          timestamp=$(date +%s)
+          echo "timestamp=$timestamp" >> $GITHUB_OUTPUT
+
+      - name: Create Release and Upload Assets
+        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
+        id: create_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title_suffix=""
+          prerelease_flag=""
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag_name="manual-${{ matrix.project }}-${{ github.run_id }}"
+            title_suffix=" (Forced Build)"
+            prerelease_flag="--prerelease"
+          else
+            tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
+          fi
+
+          release_url=$(gh release create $tag_name \
+            --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
+            --notes "
+          ### ${{ matrix.project }} last commit details
+          - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
+          - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+          " \
+            $prerelease_flag \
+            ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }})
+          
+          echo "html_url=${release_url}" >> $GITHUB_OUTPUT
+          echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
+          echo "title_suffix=${title_suffix}" >> $GITHUB_OUTPUT
+
+      - name: Get direct download URLs
+        if: steps.create_release.outputs.tag_name != ''
+        id: get_download_urls
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_info=$(gh api repos/${{ github.repository }}/releases/tags/${{ steps.create_release.outputs.tag_name }})
+          chrome_url=$(echo "$release_info" | jq -r '.assets[] | select(.name == "extension-chrome.zip") | .browser_download_url')
+          firefox_url=$(echo "$release_info" | jq -r '.assets[] | select(.name == "extension-firefox.zip") | .browser_download_url')
+          userscript_url=$(echo "$release_info" | jq -r '.assets[] | select(.name == "${{ matrix.userscript_name }}") | .browser_download_url')
+          echo "chrome_url=$chrome_url" >> $GITHUB_OUTPUT
+          echo "firefox_url=$firefox_url" >> $GITHUB_OUTPUT
+          echo "userscript_url=$userscript_url" >> $GITHUB_OUTPUT
+
+      - name: Get random quote
+        if: steps.create_release.outputs.tag_name != ''
+        id: random_quote
+        run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
+
+      - name: Send Discord Notification
+        if: steps.create_release.outputs.tag_name != ''
+        uses: SARISIA/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
+          description: |
+            ## 📝 Build Info
+            > - **Commit**
+            >  - Code: [`${{ steps.get_commit_info.outputs.commit_sha }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - Title: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - Author: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
+            ## ℹ️ About this build
+            > - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})
+            > - **Build**: <t:${{ steps.current-time.outputs.timestamp }}:R>
+            ## 📥 Download
+            > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})**
+            > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})**
+            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})**
+            ## 💬 Quote
+            ```txt
+            ${{ steps.random_quote.outputs.quote }}
+            ```
+          color: 0x2ec27c
+          username: Lumi Devs
+          avatar_url: "https://images-ext-1.discordapp.net/external/hM4wlZ1R3US3OS3TnWyrFKYAkMMlLZHoD0BUQ7iv4AA/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1117373291095662623/b570d8dea0899d437ac59dddec5c21dc.png?format=webp&quality=lossless"
+
+      - name: Get random joke
+        if: failure()
+        id: random_joke
+        run: echo "joke=$(shuf -n 1 jokes.txt)" >> $GITHUB_OUTPUT
+
+      - name: Send failure notification
+        if: failure()
+        uses: SARISIA/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: failure
+          title: "😭 ${{ matrix.project }} Build Failed"
+          description: |
+            The ${{ matrix.project }} build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.
+            ## 😹 Joke
+            ```txt
+            ${{ steps.random_joke.outputs.joke }}
+            ```
+          color: 0xe74c3c

@@ -150,14 +150,13 @@ jobs:
           - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
           "
 
-          release_url=$(gh release view $tag_name --json url -q .url 2>/dev/null)
-
-          if [[ -n "$release_url" ]]; then
+          if gh release view $tag_name >/dev/null 2>&1; then
             echo "Release $tag_name already exists, updating assets and notes."
             gh release upload $tag_name "${assets[@]}" --clobber
             gh release edit $tag_name \
               --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
               --notes "$notes"
+            release_url=$(gh release view $tag_name --json url -q .url)
           else
             echo "Creating new release $tag_name."
             gh release create $tag_name "${assets[@]}" \

@@ -1,7 +1,7 @@
 # fP-extension-build
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-auto-build/vencord-auto-build.yml?branch=main)
-![Github Workflow Status](https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-auto-build/equicord-auto-build.yml?branch=main)
+Vencord: ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-extension-build/vencord-auto-build.yml?branch=main)
+Equicord: ![Github Workflow Status](https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-extension-build/equicord-auto-build.yml?branch=main)
 
 An automated build system for creating extensions and userscripts for the fakeProfile Discord mod client.
 

@@ -115,19 +115,6 @@ jobs:
           pnpm i --no-frozen-lockfile
           pnpm buildWeb
 
-      - name: Change userscript name (Equicord only)
-        if: steps.should_run.outputs.decision == 'true'
-        id: prepare_userscript
-        run: |
-          cd ${{ matrix.project }}/dist
-          FINAL_USERSCRIPT_NAME="${{ matrix.userscript_name }}"
-          if [[ "${{ matrix.project }}" == "equicord" ]]; then
-            mv Vencord.user.js Equicord.user.js
-            FINAL_USERSCRIPT_NAME="Equicord.user.js"
-          fi
-          echo "final_userscript_name=$FINAL_USERSCRIPT_NAME" >> $GITHUB_OUTPUT
-          cd ../..
-
       - name: Get Current Time
         if: steps.should_run.outputs.decision == 'true'
         id: current-time

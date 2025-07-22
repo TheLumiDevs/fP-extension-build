@@ -112,7 +112,7 @@ jobs:
         run: |
           cd ${{ matrix.project }}
           npm i -g pnpm
-          pnpm i
+          pnpm i --no-frozen-lockfile
           pnpm buildWeb
 
       - name: Get Current Time

@@ -36,3 +36,9 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 ## 📄 License
 
 This project is licensed under the terms of the LICENSE file.
+
+## 📜 Disclaimer
+
+> [!WARNING]
+> - This project is not affiliated with Discord or any of its subsidiaries. Use at your own risk. The authors are not responsible for any issues that may arise from using this extension or userscript.  
+> - This extension and userscript is **custom build** and you cannot get support on official Vencord, Equicord Discord server. You can get **banned** for using custom builds to get the support.

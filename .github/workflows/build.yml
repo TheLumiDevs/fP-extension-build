@@ -190,17 +190,22 @@ jobs:
           description: |
             ## 📝 Build Info
             > - **Commit**
-            >  - SHA: [`${{ steps.get_commit_info.outputs.commit_sha_short }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
-            >  - Title: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
-            >  - Author: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
+            >  - **SHA**: [`${{ steps.get_commit_info.outputs.commit_sha_short }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - **Title**: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - **Author**: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build
             > - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})
             > - **Build At**: <t:${{ steps.current-time.outputs.timestamp }}:f> (<t:${{ steps.current-time.outputs.timestamp }}:R>)
             > - **Project**: ${{ matrix.project }}
+            > - **Run ID**: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            > - **Run on baranch**: `${{ github.ref }}`
             ## 📥 Download
-            > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})**
-            > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})**
-            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})**
+            > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})** **Size:** `${{ steps.create_release.outputs.chrome_size }}`
+            >  -# sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
+            > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`
+            >  -# sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
+            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
+            >  -# sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## 💬 Quote
             ```txt
             ${{ steps.random_quote.outputs.quote }}

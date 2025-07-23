@@ -8,12 +8,10 @@ assignees: ''
 ---
 
 **What is the name of the client?**
-
-**Provide a link to the client's website or repository.**
-
+eg. [name of the client](link repository)
 **Why should this client be supported?**
 
-- [ ] I confirm that this is a TypeScript-based client, similar to Vencord.
-
 **Additional context**
-Add any other context or screenshots about the new client request here.
+Add any other context or screenshots about the new client request here.  
+
+- [ ] I confirm that this is a TypeScript-based client, similar to Vencord.

@@ -55,6 +55,7 @@ jobs:
           cd ${{ matrix.project }}
           UPSTREAM_SHA=$(git rev-parse HEAD)
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
@@ -67,28 +68,24 @@ jobs:
           path: last_successful_sha_${{ matrix.project }}.txt
           key: ${{ matrix.project }}-sha-cache
 
-      - name: Check for new commits on schedule
-        id: check_commits
-        if: github.event_name == 'schedule'
-        run: |
-          LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt 2>/dev/null || echo "none")
-          if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
-            echo "${{ matrix.project }} has no new commits, skipping."
-            echo "should_build=false" >> $GITHUB_OUTPUT
-          else
-            echo "New ${{ matrix.project }} commit found, building..."
-            echo "should_build=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Determine if build should proceed
         id: should_run
         run: |
           PROCEED="false"
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            if [[ "${{ steps.check_commits.outputs.should_build }}" == "true" ]]; then
-              PROCEED="true"
+            # Check for last successful SHA from cache
+            if [[ -f last_successful_sha_${{ matrix.project }}.txt ]]; then
+              LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt)
+              if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
+                echo "${{ matrix.project }} has no new commits, skipping."
+              else
+                echo "New ${{ matrix.project }} commit found, building..."
+                PROCEED="true"
+              fi
             else
-              echo "${{ matrix.project }} has no new commits, skipping."
+              # No cache, first run for this project
+              echo "No previous build SHA found for ${{ matrix.project }}, building..."
+              PROCEED="true"
             fi
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.project }}" == "all" || "${{ github.event.inputs.project }}" == "${{ matrix.project }}" ]]; then
@@ -127,16 +124,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -x # Enable debugging
+          set -x
+          tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
+
+          if gh release view "$tag_name" >/dev/null 2>&1; then
+            echo "Release $tag_name already exists. Skipping."
+            exit 0
+          fi
 
           title_suffix=""
           prerelease_flag=""
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            tag_name="manual-${{ matrix.project }}-${{ github.run_id }}"
             title_suffix=" (Forced Build)"
             prerelease_flag="--prerelease"
-          else
-            tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
           fi
 
           assets=()
@@ -150,23 +150,14 @@ jobs:
           - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
           "
 
-          if gh release view $tag_name >/dev/null 2>&1; then
-            echo "Release $tag_name already exists, updating assets and notes."
-            gh release upload $tag_name "${assets[@]}" --clobber
-            gh release edit $tag_name \
-              --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes "$notes"
-            release_url=$(gh release view $tag_name --json url -q .url)
-          else
-            echo "Creating new release $tag_name."
-            gh release create $tag_name "${assets[@]}" \
-              --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes "$notes" \
-              $prerelease_flag
-            release_url=$(gh release view $tag_name --json url -q .url)
-          fi
-          
-          echo "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
+          echo "Creating new release $tag_name."
+          gh release create "$tag_name" "${assets[@]}" \
+            --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
+            --notes "$notes" \
+            $prerelease_flag
+          release_url=$(gh release view "$tag_name" --json url -q .url)
+
+          echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           echo "title_suffix=${title_suffix}" >> $GITHUB_OUTPUT
@@ -199,7 +190,7 @@ jobs:
           description: |
             ## 📝 Build Info
             > - **Commit**
-            >  - SHA: [`${{ steps.get_commit_info.outputs.commit_sha }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - SHA: [`${{ steps.get_commit_info.outputs.commit_sha_short }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - Title: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - Author: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build

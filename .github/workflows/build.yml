@@ -57,6 +57,22 @@ jobs:
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          SHA_DISPLAY="[\`$(git rev-parse --short HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
+          LAST_BUILT_SHA=""
+          if [[ -f ../last_successful_sha_${{ matrix.project }}.txt ]]; then
+            LAST_BUILT_SHA=$(cat ../last_successful_sha_${{ matrix.project }}.txt)
+            LAST_BUILT_SHA_SHORT=$(git rev-parse --short $LAST_BUILT_SHA)
+            echo "last_commit_sha=${LAST_BUILT_SHA}" >> $GITHUB_OUTPUT
+            echo "last_commit_sha_short=${LAST_BUILT_SHA_SHORT}" >> $GITHUB_OUTPUT
+            COMMIT_LOG=$(git log --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
+            SHA_DISPLAY="[\`${LAST_BUILT_SHA_SHORT}\`](https://github.com/${{ matrix.repo }}/commit/${LAST_BUILT_SHA}) > ${SHA_DISPLAY}"
+          else
+            COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
+          fi
+          echo "sha_display=${SHA_DISPLAY}" >> $GITHUB_OUTPUT
+          echo "commit_log<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
           cd ..
@@ -114,7 +130,7 @@ jobs:
         if: steps.should_run.outputs.decision == 'true'
         id: current-time
         run: |
-          echo "date=$(TZ='UTC' date +'%Y/%m/%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          echo "date=$(TZ='UTC' date +'%Y/%m/%d')" >> $GITHUB_OUTPUT
           timestamp=$(date +%s)
           echo "timestamp=$timestamp" >> $GITHUB_OUTPUT
 
@@ -164,14 +180,13 @@ jobs:
           assets+=("$userscript_asset")
 
           notes="
-          ### ${{ matrix.project }} last commit details
-          - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
-          - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+          ### ${{ matrix.project }} commit
+          ${{ steps.get_commit_info.outputs.commit_log }}
           "
 
           echo "Creating new release $tag_name."
           gh release create "$tag_name" "${assets[@]}" \
-            --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
+            --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}" \
             --notes "$notes" \
             $prerelease_flag
           release_url=$(gh release view "$tag_name" --json url -q .url)
@@ -209,7 +224,7 @@ jobs:
           embed-description: |
             ## 📝 Build Info
             > - **Commit**
-            >  - **SHA**: [`${{ steps.get_commit_info.outputs.commit_sha_short }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - **SHA**: ${{ steps.get_commit_info.outputs.sha_display }}
             >  - **Title**: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - **Author**: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build

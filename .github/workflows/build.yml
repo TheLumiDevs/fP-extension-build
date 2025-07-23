@@ -2,7 +2,7 @@ name: Build fakeProfile
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       project:
@@ -41,18 +41,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.2
 
       - name: Checkout ${{ matrix.project }}
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.2
         with:
           repository: ${{ matrix.repo }}
           path: ${{ matrix.project }}
 
       - name: Get commit info
         id: get_commit_info
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd ${{ matrix.project }}
           UPSTREAM_SHA=$(git rev-parse HEAD)
@@ -61,20 +59,20 @@ jobs:
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
           cd ..
-          
-          LAST_BUILT_TAG=$(gh release list --json tagName,name -L 100 | jq -r --arg proj "${{ matrix.project }}" '.[] | select(.name | startswith("fakeProfile " + $proj)) | .tagName' | head -n 1)
 
-          if [[ -z "$LAST_BUILT_TAG" || (! "$LAST_BUILT_TAG" == build-${{ matrix.project }}-*) ]]; then
-            echo "LAST_BUILT_SHA=none" >> $GITHUB_OUTPUT
-          else
-            echo "LAST_BUILT_SHA=${LAST_BUILT_TAG#build-${{ matrix.project }}-}" >> $GITHUB_OUTPUT
-          fi
-      
+      - name: Cache last successful commit SHA
+        id: cache-sha
+        uses: actions/cache@v4.2.3
+        with:
+          path: last_successful_sha_${{ matrix.project }}.txt
+          key: ${{ matrix.project }}-sha-cache
+
       - name: Check for new commits on schedule
         id: check_commits
         if: github.event_name == 'schedule'
         run: |
-          if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "${{ steps.get_commit_info.outputs.LAST_BUILT_SHA }}" ]]; then
+          LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt 2>/dev/null || echo "none")
+          if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
             echo "${{ matrix.project }} has no new commits, skipping."
             echo "should_build=false" >> $GITHUB_OUTPUT
           else
@@ -129,6 +127,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -x # Enable debugging
+
           title_suffix=""
           prerelease_flag=""
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -139,33 +139,34 @@ jobs:
             tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
           fi
 
-          release_exists=$(gh release view $tag_name --json url -q .url 2>/dev/null)
+          assets=()
+          assets+=("${{ matrix.project }}/dist/extension-chrome.zip")
+          assets+=("${{ matrix.project }}/dist/extension-firefox.zip")
+          assets+=("${{ matrix.project }}/dist/${{ matrix.userscript_name }}")
 
-          if [[ -n "$release_exists" ]]; then
+          notes="
+          ### ${{ matrix.project }} last commit details
+          - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
+          - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+          "
+
+          if gh release view $tag_name >/dev/null 2>&1; then
             echo "Release $tag_name already exists, updating assets and notes."
-            gh release upload $tag_name \
-              ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }} --clobber
+            gh release upload $tag_name "${assets[@]}" --clobber
             gh release edit $tag_name \
               --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes "
-            ### ${{ matrix.project }} last commit details
-            - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
-            - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
-            "
-            release_url=$release_exists
+              --notes "$notes"
+            release_url=$(gh release view $tag_name --json url -q .url)
           else
             echo "Creating new release $tag_name."
-            release_url=$(gh release create $tag_name \
+            gh release create $tag_name "${assets[@]}" \
               --title "fakeProfile ${{ matrix.project }} ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes "
-            ### ${{ matrix.project }} last commit details
-            - **Author:** ${{ steps.get_commit_info.outputs.commit_author }}
-            - **Message:** [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
-            " \
-              $prerelease_flag \
-              ${{ matrix.project }}/dist/extension-chrome.zip ${{ matrix.project }}/dist/extension-firefox.zip ${{ matrix.project }}/dist/${{ matrix.userscript_name }})
+              --notes "$notes" \
+              $prerelease_flag
+            release_url=$(gh release view $tag_name --json url -q .url)
           fi
           
+          echo "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           echo "title_suffix=${title_suffix}" >> $GITHUB_OUTPUT
@@ -191,14 +192,14 @@ jobs:
 
       - name: Send Discord Notification
         if: steps.create_release.outputs.tag_name != ''
-        uses: SARISIA/actions-status-discord@v1
+        uses: SARISIA/actions-status-discord@v1.15.3
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
           description: |
             ## 📝 Build Info
             > - **Commit**
-            >  - Code: [`${{ steps.get_commit_info.outputs.commit_sha }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - SHA: [`${{ steps.get_commit_info.outputs.commit_sha }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - Title: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
             >  - Author: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build
@@ -222,7 +223,7 @@ jobs:
 
       - name: Send failure notification
         if: failure()
-        uses: SARISIA/actions-status-discord@v1
+        uses: SARISIA/actions-status-discord@v1.15.3
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure

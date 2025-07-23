@@ -2,7 +2,7 @@
 # NOTE: Special for fakeProfile plugin.
 import os
 
-csp_file_string_replace = '''/*
+csp_file_string_replace = """/*
  * Vencord, a Discord client mod
  * Copyright (c) 2025 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -156,15 +156,17 @@ export function initCsp() {
     // For instance, OpenAsar adds their own that doesn't fix content-type for stylesheets which makes it
     // impossible to load css from github raw despite our fix above
     session.defaultSession.webRequest.onHeadersReceived = () => { };
-}'''
+}"""
+
 
 def replace_csp_file(path: str):
     if os.path.exists(path):
-        print(f'Found {path}')
-        with open(path, 'w', encoding = 'utf-8') as csp_file:
+        print(f"Found {path}")
+        with open(path, "w", encoding="utf-8") as csp_file:
             csp_file.write(csp_file_string_replace)
-            print('Replaced CSP file with fakeProfile\'s API url')
+            print("Replaced CSP file with fakeProfile's API url")
     else:
-        print(f'Error: Can\'t find path: {path}')
+        print(f"Error: Can't find path: {path}")
 
-replace_csp_file(path = 'Vencord/src/main/csp/index.ts')
+
+replace_csp_file(path="Vencord/src/main/csp/index.ts")

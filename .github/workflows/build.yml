@@ -220,11 +220,11 @@ jobs:
             > - **Run on baranch**: `${{ github.ref }}`
             ## 📥 Download
             > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})** **Size:** `${{ steps.create_release.outputs.chrome_size }}`
-            >  - sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
+            >  -# sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
             > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`
-            >  - sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
+            >  -# sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
             > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
-            >  - sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
+            >  -# sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## 💬 Quote
             ```txt
             ${{ steps.random_quote.outputs.quote }}

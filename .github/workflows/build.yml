@@ -139,10 +139,29 @@ jobs:
             prerelease_flag="--prerelease"
           fi
 
+          chrome_asset="${{ matrix.project }}/dist/extension-chrome.zip"
+          firefox_asset="${{ matrix.project }}/dist/extension-firefox.zip"
+          userscript_asset="${{ matrix.project }}/dist/${{ matrix.userscript_name }}"
+
+          chrome_size=$(stat -c%s "$chrome_asset")
+          chrome_sha256=$(sha256sum "$chrome_asset" | awk '{print $1}')
+          echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $chrome_size)" >> $GITHUB_OUTPUT
+          echo "chrome_sha256=$chrome_sha256" >> $GITHUB_OUTPUT
+
+          firefox_size=$(stat -c%s "$firefox_asset")
+          firefox_sha256=$(sha256sum "$firefox_asset" | awk '{print $1}')
+          echo "firefox_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $firefox_size)" >> $GITHUB_OUTPUT
+          echo "firefox_sha256=$firefox_sha256" >> $GITHUB_OUTPUT
+
+          userscript_size=$(stat -c%s "$userscript_asset")
+          userscript_sha256=$(sha256sum "$userscript_asset" | awk '{print $1}')
+          echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $userscript_size)" >> $GITHUB_OUTPUT
+          echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
+
           assets=()
-          assets+=("${{ matrix.project }}/dist/extension-chrome.zip")
-          assets+=("${{ matrix.project }}/dist/extension-firefox.zip")
-          assets+=("${{ matrix.project }}/dist/${{ matrix.userscript_name }}")
+          assets+=("$chrome_asset")
+          assets+=("$firefox_asset")
+          assets+=("$userscript_asset")
 
           notes="
           ### ${{ matrix.project }} last commit details
@@ -201,11 +220,11 @@ jobs:
             > - **Run on baranch**: `${{ github.ref }}`
             ## 📥 Download
             > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})** **Size:** `${{ steps.create_release.outputs.chrome_size }}`
-            >  -# sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
+            >  - sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
             > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`
-            >  -# sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
+            >  - sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
             > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
-            >  -# sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
+            >  - sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## 💬 Quote
             ```txt
             ${{ steps.random_quote.outputs.quote }}

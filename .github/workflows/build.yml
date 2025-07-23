@@ -19,6 +19,11 @@ on:
         required: true
         type: boolean
         default: false
+      debug_webhook:
+        description: 'Send a test message to the Discord webhook'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -202,11 +207,11 @@ jobs:
 
       - name: Send Discord Notification
         if: steps.create_release.outputs.tag_name != ''
-        uses: SARISIA/actions-status-discord@v1.15.3
+        uses: tsickert/discord-webhook@v7.0.0
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
-          description: |
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          embed-title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
+          embed-description: |
             ## 📝 Build Info
             > - **Commit**
             >  - **SHA**: [`${{ steps.get_commit_info.outputs.commit_sha_short }}`](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
@@ -220,16 +225,16 @@ jobs:
             > - **Run on baranch**: `${{ github.ref }}`
             ## 📥 Download
             > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})** **Size:** `${{ steps.create_release.outputs.chrome_size }}`
-            >  - sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
+            >  -# sha256: `${{ steps.create_release.outputs.chrome_sha256 }}`
             > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`
-            >  - sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
+            >  -# sha256: `${{ steps.create_release.outputs.firefox_sha256 }}`
             > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
-            >  - sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
+            >  -# sha256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## 💬 Quote
             ```txt
             ${{ steps.random_quote.outputs.quote }}
             ```
-          color: 0x2ec27c
+          embed-color: 0x2ec27c
 
       - name: Get random joke
         if: failure()
@@ -238,15 +243,24 @@ jobs:
 
       - name: Send failure notification
         if: failure()
-        uses: SARISIA/actions-status-discord@v1.15.3
+        uses: tsickert/discord-webhook@v7.0.0
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: failure
-          title: "😭 ${{ matrix.project }} Build Failed"
-          description: |
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          embed-title: "😭 ${{ matrix.project }} Build Failed"
+          embed-description: |
             The ${{ matrix.project }} build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.
             ## 😹 Joke
             ```txt
             ${{ steps.random_joke.outputs.joke }}
             ```
-          color: 0xe74c3c
+          embed-color: 0xe74c3c
+
+  debug-webhook:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_webhook == 'true'
+    steps:
+      - name: Send test message
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: "This is a test message from the debug-webhook job."

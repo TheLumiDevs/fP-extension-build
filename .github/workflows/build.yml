@@ -19,11 +19,6 @@ on:
         required: true
         type: boolean
         default: false
-      debug_webhook:
-        description: 'Send a test message to the Discord webhook'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -254,13 +249,3 @@ jobs:
             ${{ steps.random_joke.outputs.joke }}
             ```
           embed-color: 0xe74c3c
-
-  debug-webhook:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_webhook == 'true'
-    steps:
-      - name: Send test message
-        uses: tsickert/discord-webhook@v7.0.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          content: "This is a test message from the debug-webhook job."

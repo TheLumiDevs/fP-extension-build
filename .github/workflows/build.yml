@@ -228,10 +228,6 @@ jobs:
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          filename: |
-            ${{ matrix.project }}/dist/extension-chrome.zip
-            ${{ matrix.project }}/dist/extension-firefox.zip
-            ${{ matrix.project }}/dist/${{ matrix.userscript_name }}
           embed-title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
           embed-description: |
             ## 📝 Build Info

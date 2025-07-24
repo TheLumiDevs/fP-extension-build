@@ -51,8 +51,8 @@ jobs:
 
       - name: Get commit info
         id: get_commit_info
+        working-directory: ${{ matrix.project }}
         run: |
-          cd ${{ matrix.project }}
           UPSTREAM_SHA=$(git rev-parse HEAD)
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
@@ -75,7 +75,6 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
-          cd ..
 
       - name: Cache last successful commit SHA
         id: cache-sha
@@ -120,8 +119,8 @@ jobs:
 
       - name: Build extension and userscript
         if: steps.should_run.outputs.decision == 'true'
+        working-directory: ${{ matrix.project }}
         run: |
-          cd ${{ matrix.project }}
           npm i -g pnpm
           pnpm i --no-frozen-lockfile
           pnpm buildWeb

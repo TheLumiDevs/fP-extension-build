@@ -263,6 +263,14 @@ jobs:
           embed-footer-text: "Build completed at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
 
+      - name: Capture build error details
+        if: failure()
+        id: capture_error
+        run: |
+          echo "error_step=${{ join(matrix.project) }} failed at step '${{ github.job }}'" >> $GITHUB_OUTPUT
+          echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "failed_command=$(tail -n 20 ${{ runner.temp }}/_temp/step*.log)" >> $GITHUB_OUTPUT
+
       - name: Get random joke
         if: failure()
         id: random_joke
@@ -273,11 +281,28 @@ jobs:
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          embed-title: "😭 ${{ matrix.project }} Build Failed"
+          embed-title: "🚨 ${{ matrix.project }} Build Failed - Action Required"
           embed-description: |
-            The ${{ matrix.project }} build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.
-            ## 😹 Joke
+            ## ❌ Build Failure Details
+            **Project:** ${{ matrix.project }}
+            **Failed Step:** ${{ steps.capture_error.outputs.error_step }}
+            **Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})
+            **Branch:** `${{ github.ref }}`
+            
+            ## 📝 Last Command Output
+            ```text
+            ${{ steps.capture_error.outputs.failed_command }}
+            ```
+            
+            ## 🛠️ Required Action
+            1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }})
+            2. Verify recent code changes
+            3. Re-run workflow after fixes
+            
+            ## 😹 Stress Relief
             ```txt
             ${{ steps.random_joke.outputs.joke }}
             ```
           embed-color: 0xe74c3c
+          embed-footer-text: "Failure detected at ${{ steps.current-time.outputs.footer_time }}"
+          embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"

@@ -250,8 +250,10 @@ jobs:
             >  - SHA256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## Certificate Fingerprints
             ```plaintext
-            SHA1: ${{ steps.cert-fingerprints.outputs.FINGERPRINT1 }}
-            SHA256: ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
+            ${{ steps.cert-fingerprints.outputs.FINGERPRINT1 }}
+            ```
+            ```plaintext
+            ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
             ```
             ## 💬 Quote
             ```txt

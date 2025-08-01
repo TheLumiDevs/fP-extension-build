@@ -177,17 +177,17 @@ jobs:
           # Get asset details using POSIX-compliant syntax
           chrome_size=$(stat -c%s "$chrome_asset")
           chrome_sha256=$(sha256sum "$chrome_asset" | awk '{print $1}')
-          echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format='%.2f' $chrome_size)" >> $GITHUB_OUTPUT
+          echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $chrome_size)" >> $GITHUB_OUTPUT
           echo "chrome_sha256=$chrome_sha256" >> $GITHUB_OUTPUT
 
           firefox_size=$(stat -c%s "$firefox_asset")
           firefox_sha256=$(sha256sum "$firefox_asset" | awk '{print $1}')
-          echo "firefox_size=$(numfmt --to=iec-i --suffix=B --format='%.2f' $firefox_size)" >> $GITHUB_OUTPUT
+          echo "firefox_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $firefox_size)" >> $GITHUB_OUTPUT
           echo "firefox_sha256=$firefox_sha256" >> $GITHUB_OUTPUT
 
           userscript_size=$(stat -c%s "$userscript_asset")
           userscript_sha256=$(sha256sum "$userscript_asset" | awk '{print $1}')
-          echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format='%.2f' $userscript_size)" >> $GITHUB_OUTPUT
+          echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $userscript_size)" >> $GITHUB_OUTPUT
           echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
 
           # Add assets individually with proper quoting
@@ -200,10 +200,27 @@ jobs:
           echo "Assets:"
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
           
-          gh release create "$tag_name" \
+          # Build command arguments array
+          args=(
+            "$tag_name"
+            --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}"
+            --notes "$notes"
+          )
+          
+          # Conditionally add prerelease flag
+          [[ -n "$prerelease_flag" ]] && args+=( "$prerelease_flag" )
+          
+          # Add assets
+          args+=(
+            -a "$chrome_asset"
+            -a "$firefox_asset"
+            -a "$userscript_asset"
+          )
+          
+          gh release create "${args[@]}"
             --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}" \
             --notes "$notes" \
-            $prerelease_flag \
+            ${prerelease_flag:+$prerelease_flag} \
             -a "$chrome_asset" \
             -a "$firefox_asset" \
             -a "$userscript_asset"

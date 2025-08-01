@@ -190,40 +190,29 @@ jobs:
           echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $userscript_size)" >> $GITHUB_OUTPUT
           echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
 
-          # Add assets individually with proper quoting
-          notes="
-          ### ${{ matrix.project }} commit
-          ${{ steps.get_commit_info.outputs.commit_log }}
-          "
+          # Create temp notes file
+          notes_file=$(mktemp)
+          echo -e "### ${{ matrix.project }} commit\n${{ steps.get_commit_info.outputs.commit_log }}" > "$notes_file"
 
           echo "Creating new release $tag_name."
           echo "Assets:"
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
           
-          # Build command arguments array
-          args=(
+          # Build command with array for reliable argument handling
+          cmd_args=(
             "$tag_name"
             --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}"
-            --notes "$notes"
-          )
-          
-          # Conditionally add prerelease flag
-          [[ -n "$prerelease_flag" ]] && args+=( "$prerelease_flag" )
-          
-          # Add assets
-          args+=(
+            --notes-file "$notes_file"
             -a "$chrome_asset"
             -a "$firefox_asset"
             -a "$userscript_asset"
           )
           
-          gh release create "${args[@]}"
-            --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}" \
-            --notes "$notes" \
-            ${prerelease_flag:+$prerelease_flag} \
-            -a "$chrome_asset" \
-            -a "$firefox_asset" \
-            -a "$userscript_asset"
+          # Add prerelease flag if needed
+          [[ -n "$prerelease_flag" ]] && cmd_args+=( "$prerelease_flag" )
+          
+          # Execute the command
+          gh release create "${cmd_args[@]}"
           release_url=$(gh release view "$tag_name" --json url -q .url)
 
           echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt

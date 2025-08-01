@@ -150,6 +150,7 @@ jobs:
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_LOG_JSON: ${{ steps.get_commit_info.outputs.commit_log }}
         shell: bash
         run: |
           set -exo pipefail
@@ -192,7 +193,7 @@ jobs:
           {
             echo "### ${{ matrix.project }} commit"
             echo
-            printf "%s" "${{ steps.get_commit_info.outputs.commit_log }}" | jq -r
+            echo "$COMMIT_LOG_JSON" | jq -r
           } > "$notes_file"
 
           echo "Creating new release $tag_name."

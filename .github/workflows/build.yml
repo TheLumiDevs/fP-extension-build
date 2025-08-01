@@ -283,10 +283,7 @@ jobs:
             ```plaintext
             ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
             ```
-            ## 💬 Quote
-            ```txt
-            ${{ steps.random_quote.outputs.quote }}
-            ```
+            -# Don't forget add an star for our **[repository](https://github.com/TheLumiDevs/fP-extension-build)**
           embed-color: 0x2ec27c
           embed-footer-text: "Build completed at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
@@ -321,16 +318,11 @@ jobs:
             ```text
             ${{ steps.capture_error.outputs.failed_command }}
             ```
-            
+
             ## 🛠️ Required Action
             1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }})
             2. Verify recent code changes
             3. Re-run workflow after fixes
-            
-            ## 😹 Stress Relief
-            ```txt
-            ${{ steps.random_joke.outputs.joke }}
-            ```
           embed-color: 0xe74c3c
           embed-footer-text: "Failure detected at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"

@@ -204,20 +204,20 @@ jobs:
           if [[ -n "$prerelease_flag" ]]; then
             echo "Creating a prerelease."
             gh release create "$tag_name" \
+              "$chrome_asset" \
+              "$firefox_asset" \
+              "$userscript_asset" \
               --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
               --notes-file "$notes_file" \
-              -a "$chrome_asset" \
-              -a "$firefox_asset" \
-              -a "$userscript_asset" \
               --prerelease
           else
             echo "Creating a stable release."
             gh release create "$tag_name" \
+              "$chrome_asset" \
+              "$firefox_asset" \
+              "$userscript_asset" \
               --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes-file "$notes_file" \
-              -a "$chrome_asset" \
-              -a "$firefox_asset" \
-              -a "$userscript_asset"
+              --notes-file "$notes_file"
           fi
 
           release_url=$(gh release view "$tag_name" --json url -q .url)

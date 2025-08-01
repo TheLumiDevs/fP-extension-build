@@ -2,10 +2,12 @@
   <img src="https://avatars.githubusercontent.com/u/221838119?s=200" alt="fP-extension-build Logo">
     <h1>fP-extension-build</h1>
     <p>Automated build system for creating extensions and userscripts for the fakeProfile Discord mod client.</p>
+    <p>Status:</p>
+    <a href="https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-extension-build/build.yml?branch=main&style=flat-square&label=Build&logo=github-actions&logoColor=white&color=green" alt="CI/CD Pipeline" >
+    </a>
 </div>
 
-Status:  
-[![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-extension-build/build.yml?branch=main&style=flat-square&label=Build&logo=github-actions&logoColor=white&color=green)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml)
 
 ## 🚀 Features
 

@@ -70,11 +70,14 @@ jobs:
             COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
           fi
           echo "sha_display=${SHA_DISPLAY}" >> $GITHUB_OUTPUT
+          # Properly handle multi-line output with JSON encoding
           echo "commit_log<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMIT_LOG" >> $GITHUB_OUTPUT
+          echo -e "$COMMIT_LOG" | jq -Rs . >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-          echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          # Handle Co-authored-by trailers properly
+          COMMIT_MSG=$(git log -1 --pretty=%B | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
 
       - name: Cache last successful commit SHA
         id: cache-sha

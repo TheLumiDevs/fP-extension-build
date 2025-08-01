@@ -196,14 +196,13 @@ jobs:
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
 
           # Build command arguments in an array for safety
-          cmd_args=(
-            "$tag_name"
-            --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}"
-            --notes-file "$notes_file"
-            -a "$chrome_asset"
-            -a "$firefox_asset"
-            -a "$userscript_asset"
-          )
+          cmd_args=()
+          cmd_args+=( "$tag_name" )
+          cmd_args+=( --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}" )
+          cmd_args+=( --notes-file "$notes_file" )
+          cmd_args+=( -a "$chrome_asset" )
+          cmd_args+=( -a "$firefox_asset" )
+          cmd_args+=( -a "$userscript_asset" )
 
           # Conditionally add the prerelease flag
           if [[ -n "$prerelease_flag" ]]; then

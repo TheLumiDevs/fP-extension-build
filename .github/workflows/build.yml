@@ -150,6 +150,7 @@ jobs:
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           set -exo pipefail
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
@@ -166,15 +167,11 @@ jobs:
             prerelease_flag="--prerelease"
           fi
 
-          # Explicitly set shell options for safety
-          set -eo pipefail
-          shopt -s extglob
-
           chrome_asset="${{ matrix.project }}/dist/extension-chrome.zip"
           firefox_asset="${{ matrix.project }}/dist/extension-firefox.zip"
           userscript_asset="${{ matrix.project }}/dist/${{ matrix.userscript_name }}"
 
-          # Get asset details using POSIX-compliant syntax
+          # Get asset details
           chrome_size=$(stat -c%s "$chrome_asset")
           chrome_sha256=$(sha256sum "$chrome_asset" | awk '{print $1}')
           echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $chrome_size)" >> $GITHUB_OUTPUT
@@ -197,8 +194,8 @@ jobs:
           echo "Creating new release $tag_name."
           echo "Assets:"
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
-          
-          # Build command with array for reliable argument handling
+
+          # Build command arguments in an array for safety
           cmd_args=(
             "$tag_name"
             --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}"
@@ -207,13 +204,18 @@ jobs:
             -a "$firefox_asset"
             -a "$userscript_asset"
           )
-          
-          # Add prerelease flag if needed
-          [[ -n "$prerelease_flag" ]] && cmd_args+=( "$prerelease_flag" )
-          
-          # Execute the command
+
+          # Conditionally add the prerelease flag
+          if [[ -n "$prerelease_flag" ]]; then
+            cmd_args+=( "$prerelease_flag" )
+          fi
+
+          # Execute the command and capture the URL
           gh release create "${cmd_args[@]}"
           release_url=$(gh release view "$tag_name" --json url -q .url)
+          
+          # Cleanup
+          rm "$notes_file"
 
           echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT

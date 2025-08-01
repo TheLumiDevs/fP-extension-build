@@ -148,10 +148,11 @@ jobs:
       - name: Create Release and Upload Assets
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
         id: create_release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -x
+          set -exo pipefail
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
 
           if gh release view "$tag_name" >/dev/null 2>&1; then
@@ -190,19 +191,23 @@ jobs:
           echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $userscript_size)" >> $GITHUB_OUTPUT
           echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
 
-          # Use space-separated string instead of array for POSIX compatibility
-          assets="$chrome_asset $firefox_asset $userscript_asset"
-
+          # Add assets individually with proper quoting
           notes="
           ### ${{ matrix.project }} commit
           ${{ steps.get_commit_info.outputs.commit_log }}
           "
 
           echo "Creating new release $tag_name."
-          gh release create "$tag_name" $assets \
+          echo "Assets:"
+          ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
+          
+          gh release create "$tag_name" \
             --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}" \
             --notes "$notes" \
-            $prerelease_flag
+            $prerelease_flag \
+            -a "$chrome_asset" \
+            -a "$firefox_asset" \
+            -a "$userscript_asset"
           release_url=$(gh release view "$tag_name" --json url -q .url)
 
           echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt

@@ -192,7 +192,7 @@ jobs:
           {
             echo "### ${{ matrix.project }} commit"
             echo
-            echo "${{ steps.get_commit_info.outputs.commit_log }}" | jq -r
+            printf "%s" "${{ steps.get_commit_info.outputs.commit_log }}" | jq -r
           } > "$notes_file"
 
           echo "Creating new release $tag_name."

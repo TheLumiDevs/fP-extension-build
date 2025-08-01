@@ -114,8 +114,8 @@ jobs:
       - name: Clone fakeProfile plugin
         if: steps.should_run.outputs.decision == 'true'
         run: |
-          mkdir -p ${{ matrix.project }}/src/plugins
-          git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/plugins/fakeProfile
+          mkdir -p ${{ matrix.project }}/src/userplugins
+          git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/userplugins/fakeProfile
 
       - name: Build extension and userscript
         if: steps.should_run.outputs.decision == 'true'
@@ -123,7 +123,7 @@ jobs:
         run: |
           npm i -g pnpm
           pnpm i --no-frozen-lockfile
-          pnpm buildWeb
+          PLUGINS_DIR=src/userplugins pnpm buildWeb
 
       - name: Get Current Time
         if: steps.should_run.outputs.decision == 'true'

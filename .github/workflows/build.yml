@@ -153,7 +153,10 @@ jobs:
         shell: bash
         run: |
           set -exo pipefail
+          echo "--- Debug: Starting release creation script ---"
+
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
+          echo "Debug: Tag name: $tag_name"
 
           if gh release view "$tag_name" >/dev/null 2>&1; then
             echo "Release $tag_name already exists. Skipping."
@@ -166,6 +169,8 @@ jobs:
             title_suffix=" (Forced Build)"
             prerelease_flag="--prerelease"
           fi
+          echo "Debug: Title suffix: $title_suffix"
+          echo "Debug: Prerelease flag: $prerelease_flag"
 
           chrome_asset="${{ matrix.project }}/dist/extension-chrome.zip"
           firefox_asset="${{ matrix.project }}/dist/extension-firefox.zip"
@@ -187,22 +192,42 @@ jobs:
           echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $userscript_size)" >> $GITHUB_OUTPUT
           echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
 
-          # Create temp notes file
+          # Create temp notes file safely
           notes_file=$(mktemp)
-          echo -e "### ${{ matrix.project }} commit\n${{ steps.get_commit_info.outputs.commit_log }}" > "$notes_file"
+          echo "Debug: Creating notes file at $notes_file"
+          {
+            echo "### ${{ matrix.project }} commit"
+            echo
+            echo "${{ steps.get_commit_info.outputs.commit_log }}"
+          } > "$notes_file"
+          echo "Debug: Notes file content:"
+          cat "$notes_file"
+          echo "--- End of notes file content ---"
 
           echo "Creating new release $tag_name."
           echo "Assets:"
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
 
-          # Build command as a string to avoid array issues
-          cmd_args="'$tag_name' --title \"fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}\" --notes-file \"$notes_file\" -a \"$chrome_asset\" -a \"$firefox_asset\" -a \"$userscript_asset\""
+          # Build command arguments in an array for safety
+          cmd_args=(
+            "$tag_name"
+            --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}"
+            --notes-file "$notes_file"
+            -a "$chrome_asset"
+            -a "$firefox_asset"
+            -a "$userscript_asset"
+          )
+
+          # Conditionally add the prerelease flag
           if [[ -n "$prerelease_flag" ]]; then
-            cmd_args="$cmd_args $prerelease_flag"
+            cmd_args+=( "$prerelease_flag" )
           fi
 
-          # Execute the command
-          eval "gh release create $cmd_args"
+          echo "Debug: Executing gh release create with the following arguments:"
+          printf "  %s\n" "${cmd_args[@]}"
+          
+          # Execute the command and capture the URL
+          gh release create "${cmd_args[@]}"
           release_url=$(gh release view "$tag_name" --json url -q .url)
           
           # Cleanup

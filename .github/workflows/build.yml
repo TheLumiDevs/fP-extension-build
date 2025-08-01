@@ -22,6 +22,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -217,7 +218,8 @@ jobs:
               "$firefox_asset" \
               "$userscript_asset" \
               --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes-file "$notes_file"
+              --notes-file "$notes_file" \
+              --verify
           fi
 
           release_url=$(gh release view "$tag_name" --json url -q .url)

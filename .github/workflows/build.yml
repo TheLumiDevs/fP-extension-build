@@ -58,6 +58,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Cache last successful commit SHA
+        id: cache-sha
+        uses: actions/cache@v4.2.3
+        with:
+          path: last_successful_sha_${{ matrix.project }}.txt
+          key: ${{ matrix.project }}-sha-cache
+
       - name: Get commit info
         id: get_commit_info
         working-directory: ${{ matrix.project }}
@@ -91,13 +98,6 @@ jobs:
           # Handle Co-authored-by trailers properly
           COMMIT_MSG=$(../node_modules/.bin/ts-node ../src/get_commit.ts)
           echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
-
-      - name: Cache last successful commit SHA
-        id: cache-sha
-        uses: actions/cache@v4.2.3
-        with:
-          path: last_successful_sha_${{ matrix.project }}.txt
-          key: ${{ matrix.project }}-sha-cache
 
       - name: Determine if build should proceed
         id: should_run
@@ -275,7 +275,7 @@ jobs:
             >  - SHA256: `${{ steps.create_release.outputs.chrome_sha256 }}`
             > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`
             >  - SHA256: `${{ steps.create_release.outputs.firefox_sha256 }}`
-            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript__url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
+            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
             >  - SHA256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## Certificate Fingerprints
             ```plaintext

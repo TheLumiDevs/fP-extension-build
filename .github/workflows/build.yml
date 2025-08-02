@@ -252,11 +252,6 @@ jobs:
           echo "firefox_url=$firefox_url" >> $GITHUB_OUTPUT
           echo "userscript_url=$userscript_url" >> $GITHUB_OUTPUT
 
-      - name: Get random quote
-        if: steps.create_release.outputs.tag_name != ''
-        id: random_quote
-        run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
-
       - name: Get random color
         if: steps.create_release.outputs.tag_name != ''
         id: random_color
@@ -306,11 +301,6 @@ jobs:
           echo "error_step=${{ join(matrix.project) }} failed at step '${{ github.job }}'" >> $GITHUB_OUTPUT
           echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
           echo "failed_command=$(tail -n 20 ${{ runner.temp }}/_temp/step*.log)" >> $GITHUB_OUTPUT
-
-      - name: Get random joke
-        if: failure()
-        id: random_joke
-        run: echo "joke=$(shuf -n 1 jokes.txt)" >> $GITHUB_OUTPUT
 
       - name: Send failure notification
         if: failure()

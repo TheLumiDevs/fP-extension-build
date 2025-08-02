@@ -89,11 +89,12 @@ jobs:
 
       - name: Check commit cache
         id: check_cache
-        run: npx ts-node ../src/check-commit-cache.ts
+        run: npx ts-node src/check-commit-cache.ts
         env:
           INPUT_PROJECT: ${{ matrix.project }}
           INPUT_CURRENT_SHA: ${{ steps.get_commit_info.outputs.commit_sha }}
           INPUT_REPO: ${{ matrix.repo }}
+        working-directory: ${{ github.workspace }}
 
       - name: Determine if build should proceed
         id: should_run

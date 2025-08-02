@@ -1,9 +1,9 @@
 ---
 name: Bug Report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+title: 'Bug Report: '
+labels: 'bug'
+assignees: '@TheLumiDevs'
 
 ---
 

@@ -4,10 +4,9 @@
     <p>Automated build system for creating extensions and userscripts for the fakeProfile Discord mod client.</p>
     <p>Status:</p>
     <a href="https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-extension-build/build.yml?branch=main&style=flat-square&label=Build&logo=github-actions&logoColor=white&color=green" alt="CI/CD Pipeline" >
+    <img src="https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg" alt="CI/CD Pipeline" >
     </a>
 </div>
-
 
 ## 🚀 Features
 

@@ -18,7 +18,35 @@ jobs:
   discord_notification:
     runs-on: ubuntu-latest
     steps:
-      - name: Send notification to Discord
+      - name: Send notification for Push Event
+        if: github.event_name == 'push'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          commit_summary=$(echo '${{ toJSON(github.event.commits) }}' | jq -r '.[] | "[\`\(.id | .[:7])\`](\(.url)) \(.message)"' | sed 's/"/\\"/g' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
+          json_payload=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "[${{ github.repository }}] New commits to ${{ github.ref_name }}",
+                "description": "${commit_summary}",
+                "url": "${{ github.event.compare }}",
+                "color": 3447003,
+                "author": {
+                  "name": "${{ github.actor }}",
+                  "url": "https://github.com/${{ github.actor }}",
+                  "icon_url": "https://github.com/${{ github.actor }}.png"
+                },
+                "timestamp": "${{ github.event.head_commit.timestamp }}"
+              }
+            ]
+          }
+          EOF
+          )
+          curl -X POST -H "Content-Type: application/json" -d "$json_payload" "$DISCORD_WEBHOOK_URL"
+
+      - name: Send notification for Other Events
+        if: github.event_name != 'push'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           EVENT_NAME: ${{ github.event_name }}

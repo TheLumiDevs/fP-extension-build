@@ -1,0 +1,25 @@
+# This file for sending repository webhook events to a Discord channel.
+# Action: tsickert/discord-webhook@v7.0.0
+
+name: Repository Webhook Events
+
+on:
+  create:
+  delete:
+  fork:
+  issue_comment:
+  issues:
+  pull_request:
+  push:
+  release:
+  watch:
+
+jobs:
+  discord_notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification to Discord
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: "A new `${{ github.event_name }}` event occurred in the `${{ github.repository }}` repository, triggered by `${{ github.actor }}`."

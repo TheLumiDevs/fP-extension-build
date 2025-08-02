@@ -101,7 +101,7 @@ jobs:
         run: |
           PROCEED="false"
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            if [[ "${{ steps.check_cache.outputs.should_proceed }}" == "true" && "${{ steps.check_release.outputs.release_exists }}" != "true" ]]; then
+            if [[ ("${{ steps.check_cache.outputs.should_proceed }}" == "true" || "${{ steps.cache-sha.outputs.cache-hit }}" == "false") && "${{ steps.check_release.outputs.release_exists }}" != "true" ]]; then
               PROCEED="true"
             fi
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then

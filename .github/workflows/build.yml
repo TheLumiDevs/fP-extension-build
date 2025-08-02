@@ -147,33 +147,14 @@ jobs:
           echo "FINGERPRINT1=$(echo "$FINGERPRINT1_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
           echo "FINGERPRINT2=$(echo "$FINGERPRINT2_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
 
-      - name: Import GPG key
-        id: import_gpg
-        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Configure Git for GPG signing
-        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
-        env:
-          COMMIT_NAME: ${{ secrets.COMMIT_NAME }}
-          COMMIT_EMAIL: ${{ secrets.COMMIT_EMAIL }}
-        run: |
-          git config --global user.name "$COMMIT_NAME"
-          git config --global user.email "$COMMIT_EMAIL"
-          git config --global user.signingkey ${{ steps.import_gpg.outputs.keyid }}
-          git config --global commit.gpgsign true
-
-      - name: Create and push signed tag
+      - name: Create and push tag
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
         run: |
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
           if git rev-parse -q --verify "refs/tags/$tag_name" >/dev/null; then
             echo "Tag $tag_name already exists. Skipping tag creation."
           else
-            git tag -s "$tag_name" -m "Release $tag_name"
+            git tag -a "$tag_name" -m "Release $tag_name"
             git push origin "$tag_name"
           fi
       - name: Create Release and Upload Assets

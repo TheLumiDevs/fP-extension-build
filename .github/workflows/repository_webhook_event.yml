@@ -22,22 +22,44 @@ jobs:
         if: github.event_name == 'push'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          COMMITS_PAYLOAD: ${{ toJSON(github.event.commits) }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          COMPARE_URL: ${{ github.event.compare }}
+          ACTOR: ${{ github.actor }}
+          TIMESTAMP: ${{ github.event.head_commit.timestamp }}
         run: |
-          commit_summary=$(echo '${{ toJSON(github.event.commits) }}' | jq -r '.[] | "[\`\(.id | .[:7])\`](\(.url)) \(.message)"' | sed 's/"/\\"/g' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
+          fields=""
+          for row in $(echo "$COMMITS_PAYLOAD" | jq -r '.[] | @base64'); do
+              _jq() {
+               echo ${row} | base64 --decode | jq -r ${1}
+              }
+             short_sha=$(_jq '.id' | cut -c1-7)
+             url=$(_jq '.url')
+             message=$(_jq '.message' | sed 's/"/\\"/g' | sed -z 's/\n/\\n/g')
+
+             field="{\"name\": \"Commit [\`$short_sha\`]($url)\", \"value\": \"$message\", \"inline\": false}"
+             if [ -z "$fields" ]; then
+               fields="$field"
+             else
+               fields="$fields, $field"
+             fi
+          done
+
           json_payload=$(cat <<EOF
           {
             "embeds": [
               {
-                "title": "[${{ github.repository }}] New commits to ${{ github.ref_name }}",
-                "description": "${commit_summary}",
-                "url": "${{ github.event.compare }}",
+                "title": "[$REPOSITORY] New commits to $REF_NAME",
+                "url": "$COMPARE_URL",
                 "color": 3447003,
                 "author": {
-                  "name": "${{ github.actor }}",
-                  "url": "https://github.com/${{ github.actor }}",
-                  "icon_url": "https://github.com/${{ github.actor }}.png"
+                  "name": "$ACTOR",
+                  "url": "https://github.com/$ACTOR",
+                  "icon_url": "https://github.com/$ACTOR.png"
                 },
-                "timestamp": "${{ github.event.head_commit.timestamp }}"
+                "fields": [ $fields ],
+                "timestamp": "$TIMESTAMP"
               }
             ]
           }

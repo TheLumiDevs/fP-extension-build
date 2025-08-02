@@ -28,6 +28,10 @@
 
 *Just install and go to https://discord.com/app and enjoy*
 
+## ⚙️ Plugin Tutorial
+
+Check out **[this tutorial](https://github.com/TheLumiDevs/fakeProfile/blob/main/docs/tutorial.md)**.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a pull request or open an issue.

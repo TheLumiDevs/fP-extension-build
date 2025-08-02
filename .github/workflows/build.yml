@@ -151,8 +151,10 @@ jobs:
         if: steps.should_run.outputs.decision == 'true'
         run: |
           openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 1 -nodes -subj '/CN=example.com' >/dev/null 2>&1
-          echo "FINGERPRINT1=$(openssl x509 -in cert.pem -fingerprint -sha1 -noout | sed 's/SHA1 Fingerprint=//' | tr -d ':')" >> $GITHUB_OUTPUT
-          echo "FINGERPRINT2=$(openssl x509 -in cert.pem -fingerprint -sha256 -noout | sed 's/SHA256 Fingerprint=//' | tr -d ':')" >> $GITHUB_OUTPUT
+          FINGERPRINT1_RAW=$(openssl x509 -in cert.pem -fingerprint -sha1 -noout | sed 's/SHA1 Fingerprint=//' | tr -d ':')
+          FINGERPRINT2_RAW=$(openssl x509 -in cert.pem -fingerprint -sha256 -noout | sed 's/SHA256 Fingerprint=//' | tr -d ':')
+          echo "FINGERPRINT1=$(echo "$FINGERPRINT1_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
+          echo "FINGERPRINT2=$(echo "$FINGERPRINT2_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Assets
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')

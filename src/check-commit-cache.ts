@@ -8,6 +8,7 @@ interface CacheCheckResult {
   lastSha: string;
   lastShaShort: string;
   shaDisplay: string;
+  cacheExists: boolean;
 }
 
 async function checkCommitCache(): Promise<void> {
@@ -17,10 +18,11 @@ async function checkCommitCache(): Promise<void> {
     const cacheFileName = `last_successful_sha_${project}.txt`;
     
     let result: CacheCheckResult = {
-      shouldProceed: false,
+      shouldProceed: true, // Default to true when no cache exists
       lastSha: '',
       lastShaShort: '',
-      shaDisplay: currentSha.slice(0, 7)
+      shaDisplay: currentSha.slice(0, 7),
+      cacheExists: false
     };
 
     if (existsSync(cacheFileName)) {
@@ -31,7 +33,8 @@ async function checkCommitCache(): Promise<void> {
         shouldProceed: currentSha !== lastSha,
         lastSha,
         lastShaShort,
-        shaDisplay: `[${lastShaShort}](https://github.com/${getInput('repo')}/commit/${lastSha}) → [${currentSha.slice(0,7)}](https://github.com/${getInput('repo')}/commit/${currentSha})`
+        shaDisplay: `[${lastShaShort}](https://github.com/${getInput('repo')}/commit/${lastSha}) → [${currentSha.slice(0,7)}](https://github.com/${getInput('repo')}/commit/${currentSha})`,
+        cacheExists: true
       };
     }
 
@@ -39,6 +42,7 @@ async function checkCommitCache(): Promise<void> {
     setOutput('last_sha', result.lastSha);
     setOutput('last_sha_short', result.lastShaShort);
     setOutput('sha_display', result.shaDisplay);
+    setOutput('cache_exists', result.cacheExists.toString());
 
     // Update cache file if proceeding
     if (result.shouldProceed) {

@@ -69,27 +69,9 @@ jobs:
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
-          SHA_DISPLAY="[\`$(git rev-parse --short HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
-          LAST_BUILT_SHA=""
-          if [[ -f ../last_successful_sha_${{ matrix.project }}.txt ]]; then
-            LAST_BUILT_SHA=$(cat ../last_successful_sha_${{ matrix.project }}.txt)
-            LAST_BUILT_SHA_SHORT=$(git rev-parse --short $LAST_BUILT_SHA)
-            echo "last_commit_sha=${LAST_BUILT_SHA}" >> $GITHUB_OUTPUT
-            echo "last_commit_sha_short=${LAST_BUILT_SHA_SHORT}" >> $GITHUB_OUTPUT
-            COMMIT_LOG=$(git log --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
-            SHA_DISPLAY="[\`${LAST_BUILT_SHA_SHORT}\`](https://github.com/${{ matrix.repo }}/commit/${LAST_BUILT_SHA}) > ${SHA_DISPLAY}"
-          else
-            COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
-          fi
-          echo "sha_display=${SHA_DISPLAY}" >> $GITHUB_OUTPUT
-          # Properly handle multi-line output with JSON encoding
-          echo "commit_log<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$COMMIT_LOG" | jq -Rs . >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-          # Handle Co-authored-by trailers properly
           COMMIT_MSG=$(../node_modules/.bin/ts-node ../src/get_commit.ts)
           echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
+          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
 
       - name: Cache last successful commit SHA
         id: cache-sha
@@ -105,35 +87,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx ts-node ../src/check-release.ts "${{ matrix.repo }}" "${{ steps.get_commit_info.outputs.tag_name }}"
 
+      - name: Check commit cache
+        id: check_cache
+        run: npx ts-node ../src/check-commit-cache.ts
+        env:
+          INPUT_PROJECT: ${{ matrix.project }}
+          INPUT_CURRENT_SHA: ${{ steps.get_commit_info.outputs.commit_sha }}
+          INPUT_REPO: ${{ matrix.repo }}
+
       - name: Determine if build should proceed
         id: should_run
         run: |
           PROCEED="false"
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            # Check for last successful SHA from cache
-            if [[ -f last_successful_sha_${{ matrix.project }}.txt ]]; then
-              LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt)
-              if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
-                echo "${{ matrix.project }} has no new commits, skipping."
-              elif [[ "${{ steps.check_release.outputs.release_exists }}" == "true" ]]; then
-                echo "Existing release found for ${{ steps.get_commit_info.outputs.tag_name }}, skipping build."
-              else
-                echo "New ${{ matrix.project }} commit found and no existing release, building..."
-                PROCEED="true"
-              fi
-            else
-              # No cache, first run for this project
-              echo "No previous build SHA found for ${{ matrix.project }}, building..."
+            if [[ "${{ steps.check_cache.outputs.should_proceed }}" == "true" && "${{ steps.check_release.outputs.release_exists }}" != "true" ]]; then
               PROCEED="true"
             fi
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.project }}" == "All" || "${{ github.event.inputs.project }}" == "${{ matrix.project }}" ]]; then
               PROCEED="true"
-            else
-               echo "Skipping ${{ matrix.project }} as it was not selected for this manual run."
             fi
           fi
           echo "decision=${PROCEED}" >> $GITHUB_OUTPUT
+          echo "Using cache status: ${{ steps.check_cache.outputs.cache_exists }}"
 
       - name: Clone fakeProfile plugin
         if: steps.should_run.outputs.decision == 'true'

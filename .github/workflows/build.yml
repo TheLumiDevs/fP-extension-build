@@ -104,21 +104,8 @@ jobs:
         id: should_run
         run: |
           PROCEED="false"
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            # Check for last successful SHA from cache
-            if [[ -f last_successful_sha_${{ matrix.project }}.txt ]]; then
-              LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt)
-              if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
-                echo "${{ matrix.project }} has no new commits, skipping."
-              else
-                echo "New ${{ matrix.project }} commit found, building..."
-                PROCEED="true"
-              fi
-            else
-              # No cache, first run for this project
-              echo "No previous build SHA found for ${{ matrix.project }}, building..."
-              PROCEED="true"
-            fi
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "push" ]]; then
+            PROCEED="true"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.project }}" == "All" || "${{ github.event.inputs.project }}" == "${{ matrix.project }}" ]]; then
               PROCEED="true"

@@ -1,5 +1,5 @@
-function getRandomColor(): string {
-  return Math.floor(Math.random() * 16777215).toString(16);
+function getRandomColor(): number {
+  return Math.floor(Math.random() * 16777215);
 }
 
-console.log(getRandomColor());
+console.log(JSON.stringify({ embeds: [{ color: getRandomColor() }] }));

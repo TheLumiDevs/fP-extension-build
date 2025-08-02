@@ -153,10 +153,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
-          if git rev-parse -q --verify "refs/tags/$tag_name" >/dev/null; then
-            echo "Tag $tag_name already exists. Skipping tag creation."
+          if git ls-remote --exit-code origin "refs/tags/$tag_name" > /dev/null 2>&1; then
+            echo "Tag $tag_name already exists in remote. Skipping tag creation."
           else
-            git tag -a "$tag_name" -m "Release $tag_name"
+            git tag -fa "$tag_name" -m "Release $tag_name"
             git push origin "$tag_name"
           fi
       - name: Create Release and Upload Assets
@@ -262,7 +262,7 @@ jobs:
       - name: Get random color
         if: steps.create_release.outputs.tag_name != ''
         id: random_color
-        run: echo "hex_color=$(node_modules/.bin/ts-node src/random-color.ts)" >> $GITHUB_OUTPUT
+        run: echo "embed_color=$(node_modules/.bin/ts-node src/random-color.ts)" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
         if: steps.create_release.outputs.tag_name != ''
@@ -297,7 +297,7 @@ jobs:
             ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
             ```
             -# Don't forget add an star for our **[repository](https://github.com/TheLumiDevs/fP-extension-build)**
-          embed-color: ${{ steps.random_color.outputs.hex_color }}
+          embed-color: ${{ steps.random_color.outputs.embed_color }}
           embed-footer-text: "Build completed at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
 

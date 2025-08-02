@@ -22,6 +22,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -70,11 +71,14 @@ jobs:
             COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
           fi
           echo "sha_display=${SHA_DISPLAY}" >> $GITHUB_OUTPUT
+          # Properly handle multi-line output with JSON encoding
           echo "commit_log<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMIT_LOG" >> $GITHUB_OUTPUT
+          echo -e "$COMMIT_LOG" | jq -Rs . >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-          echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          # Handle Co-authored-by trailers properly
+          COMMIT_MSG=$(git log -1 --pretty=%B | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
 
       - name: Cache last successful commit SHA
         id: cache-sha
@@ -114,8 +118,8 @@ jobs:
       - name: Clone fakeProfile plugin
         if: steps.should_run.outputs.decision == 'true'
         run: |
-          mkdir -p ${{ matrix.project }}/src/plugins
-          git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/plugins/fakeProfile
+          mkdir -p ${{ matrix.project }}/src/userplugins
+          git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/userplugins/fakeProfile
 
       - name: Build extension and userscript
         if: steps.should_run.outputs.decision == 'true'
@@ -123,7 +127,7 @@ jobs:
         run: |
           npm i -g pnpm
           pnpm i --no-frozen-lockfile
-          pnpm buildWeb
+          PLUGINS_DIR=src/userplugins pnpm buildWeb
 
       - name: Get Current Time
         if: steps.should_run.outputs.decision == 'true'
@@ -147,8 +151,10 @@ jobs:
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_LOG_JSON: ${{ steps.get_commit_info.outputs.commit_log }}
+        shell: bash
         run: |
-          set -x
+          set -exo pipefail
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
 
           if gh release view "$tag_name" >/dev/null 2>&1; then
@@ -159,7 +165,7 @@ jobs:
           title_suffix=""
           prerelease_flag=""
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            title_suffix=" (Forced Build)"
+            title_suffix=" - Forced Build"
             prerelease_flag="--prerelease"
           fi
 
@@ -167,37 +173,59 @@ jobs:
           firefox_asset="${{ matrix.project }}/dist/extension-firefox.zip"
           userscript_asset="${{ matrix.project }}/dist/${{ matrix.userscript_name }}"
 
+          # Get asset details
           chrome_size=$(stat -c%s "$chrome_asset")
           chrome_sha256=$(sha256sum "$chrome_asset" | awk '{print $1}')
-          echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $chrome_size)" >> $GITHUB_OUTPUT
+          echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $chrome_size)" >> $GITHUB_OUTPUT
           echo "chrome_sha256=$chrome_sha256" >> $GITHUB_OUTPUT
 
           firefox_size=$(stat -c%s "$firefox_asset")
           firefox_sha256=$(sha256sum "$firefox_asset" | awk '{print $1}')
-          echo "firefox_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $firefox_size)" >> $GITHUB_OUTPUT
+          echo "firefox_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $firefox_size)" >> $GITHUB_OUTPUT
           echo "firefox_sha256=$firefox_sha256" >> $GITHUB_OUTPUT
 
           userscript_size=$(stat -c%s "$userscript_asset")
           userscript_sha256=$(sha256sum "$userscript_asset" | awk '{print $1}')
-          echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format="%.2f" $userscript_size)" >> $GITHUB_OUTPUT
+          echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $userscript_size)" >> $GITHUB_OUTPUT
           echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
 
-          assets=()
-          assets+=("$chrome_asset")
-          assets+=("$firefox_asset")
-          assets+=("$userscript_asset")
-
-          notes="
-          ### ${{ matrix.project }} commit
-          ${{ steps.get_commit_info.outputs.commit_log }}
-          "
+          # Create temp notes file safely
+          notes_file=$(mktemp)
+          {
+            echo "### ${{ matrix.project }} commit"
+            echo
+            echo "$COMMIT_LOG_JSON" | jq -r
+          } > "$notes_file"
 
           echo "Creating new release $tag_name."
-          gh release create "$tag_name" "${assets[@]}" \
-            --title "fakeProfile auto build for ${{ matrix.project }} (${{ steps.current-time.outputs.date }})${title_suffix}" \
-            --notes "$notes" \
-            $prerelease_flag
+          echo "Assets:"
+          ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
+
+          # Use a static command based on the prerelease flag to avoid dynamic construction
+          if [[ -n "$prerelease_flag" ]]; then
+            echo "Creating a prerelease."
+            gh release create "$tag_name" \
+              "$chrome_asset" \
+              "$firefox_asset" \
+              "$userscript_asset" \
+              --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
+              --notes-file "$notes_file" \
+              --prerelease
+          else
+            echo "Creating a stable release."
+            gh release create "$tag_name" \
+              "$chrome_asset" \
+              "$firefox_asset" \
+              "$userscript_asset" \
+              --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
+              --notes-file "$notes_file" \
+              --verify
+          fi
+
           release_url=$(gh release view "$tag_name" --json url -q .url)
+          
+          # Cleanup
+          rm "$notes_file"
 
           echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
@@ -250,16 +278,23 @@ jobs:
             >  - SHA256: `${{ steps.create_release.outputs.userscript_sha256 }}`
             ## Certificate Fingerprints
             ```plaintext
-            SHA1: ${{ steps.cert-fingerprints.outputs.FINGERPRINT1 }}
-            SHA256: ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
+            ${{ steps.cert-fingerprints.outputs.FINGERPRINT1 }}
             ```
-            ## 💬 Quote
-            ```txt
-            ${{ steps.random_quote.outputs.quote }}
+            ```plaintext
+            ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
             ```
+            -# Don't forget add an star for our **[repository](https://github.com/TheLumiDevs/fP-extension-build)**
           embed-color: 0x2ec27c
           embed-footer-text: "Build completed at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
+
+      - name: Capture build error details
+        if: failure()
+        id: capture_error
+        run: |
+          echo "error_step=${{ join(matrix.project) }} failed at step '${{ github.job }}'" >> $GITHUB_OUTPUT
+          echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "failed_command=$(tail -n 20 ${{ runner.temp }}/_temp/step*.log)" >> $GITHUB_OUTPUT
 
       - name: Get random joke
         if: failure()
@@ -271,11 +306,23 @@ jobs:
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          embed-title: "😭 ${{ matrix.project }} Build Failed"
+          embed-title: "🚨 ${{ matrix.project }} Build Failed - Action Required"
           embed-description: |
-            The ${{ matrix.project }} build process failed. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for logs.
-            ## 😹 Joke
-            ```txt
-            ${{ steps.random_joke.outputs.joke }}
+            ## ❌ Build Failure Details
+            **Project:** ${{ matrix.project }}
+            **Failed Step:** ${{ steps.capture_error.outputs.error_step }}
+            **Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})
+            **Branch:** `${{ github.ref }}`
+            
+            ## 📝 Last Command Output
+            ```text
+            ${{ steps.capture_error.outputs.failed_command }}
             ```
+
+            ## 🛠️ Required Action
+            1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }})
+            2. Verify recent code changes
+            3. Re-run workflow after fixes
           embed-color: 0xe74c3c
+          embed-footer-text: "Failure detected at ${{ steps.current-time.outputs.footer_time }}"
+          embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"

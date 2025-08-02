@@ -1,8 +1,8 @@
-# --- TEMPLATE INSTRUCTIONS ---
-# Subject line (keep it under 50 characters)
+# Subject: (Keep under 50 characters)
+# ---------------------------------
 Lazy commit
 # Body of the commit message (explain what and why, not how)
-Author lazy wirte a commit message so check commit deails to know what this commit does.
+Author __lazy__ wirte a commit message so check **commit deails** to know what this commit does.
 # For example:
 # feat(api): add new endpoint for user profiles
 #

@@ -1,8 +1,4 @@
-&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;
-
-[optional body]
-
-[optional footer]
+Author lazy wirte a commit message so check commit deails to know what this commit does.
 
 # --- TEMPLATE INSTRUCTIONS ---
 # Subject line (keep it under 50 characters)

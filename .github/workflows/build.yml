@@ -21,7 +21,7 @@ on:
         description: 'Create a release (only for manual runs)'
         required: true
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
@@ -68,7 +68,12 @@ jobs:
           UPSTREAM_SHA=$(git rev-parse HEAD)
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TIMESTAMP=$(date +%s)
+            echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}-${TIMESTAMP}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          fi
           COMMIT_MSG=$(../node_modules/.bin/ts-node ../src/get_commit.ts)
           echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
@@ -146,7 +151,7 @@ jobs:
           echo "FINGERPRINT2=$(echo "$FINGERPRINT2_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Assets
-        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
+        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -156,7 +161,7 @@ jobs:
           set -exo pipefail
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
 
-          if gh release view "$tag_name" >/dev/null 2>&1; then
+          if gh release view "$tag_name" >/dev/null 2>&1 && [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
             echo "Release $tag_name already exists. Skipping."
             exit 0
           fi

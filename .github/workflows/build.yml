@@ -95,6 +95,29 @@ jobs:
           path: last_successful_sha_${{ matrix.project }}.txt
           key: ${{ matrix.project }}-sha-cache
 
+      - name: Check Release & Tag
+        id: check_release
+        working-directory: ${{ matrix.project }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking for existing release/tag..."
+          # Check for release
+          if gh release view ${{ steps.get_commit_info.outputs.tag_name }} >/dev/null 2>&1; then
+            echo "release_exists=true" >> $GITHUB_OUTPUT
+            echo "Found existing release: ${{ steps.get_commit_info.outputs.tag_name }}"
+          else
+            echo "release_exists=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check for tag independently
+          if gh api /repos/${{ github.repository }}/git/ref/tags/${{ steps.get_commit_info.outputs.tag_name }} >/dev/null 2>&1; then
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+            echo "Found existing tag: ${{ steps.get_commit_info.outputs.tag_name }}"
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Determine if build should proceed
         id: should_run
         run: |
@@ -105,8 +128,10 @@ jobs:
               LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt)
               if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
                 echo "${{ matrix.project }} has no new commits, skipping."
+              elif [[ "${{ steps.check_release.outputs.release_exists }}" == "true" ]]; then
+                echo "Existing release found for ${{ steps.get_commit_info.outputs.tag_name }}, skipping build."
               else
-                echo "New ${{ matrix.project }} commit found, building..."
+                echo "New ${{ matrix.project }} commit found and no existing release, building..."
                 PROCEED="true"
               fi
             else

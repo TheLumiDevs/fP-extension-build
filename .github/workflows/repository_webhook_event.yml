@@ -19,7 +19,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to Discord
-        uses: tsickert/discord-webhook@v7.0.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          content: "A new `${{ github.event_name }}` event occurred in the `${{ github.repository }}` repository, triggered by `${{ github.actor }}`."
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          TIMESTAMP: ${{ github.event.head_commit.timestamp || github.event.comment.created_at || github.event.release.created_at || github.event.created_at || github.event.issue.created_at || github.event.pull_request.created_at }}
+        run: |
+          json_payload=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "A new \`$EVENT_NAME\` event occurred in the \`$REPOSITORY\` repository",
+                "fields": [
+                  {
+                    "name": "Triggered by",
+                    "value": "$ACTOR",
+                    "inline": true
+                  }
+                ],
+                "timestamp": "$TIMESTAMP"
+              }
+            ]
+          }
+          EOF
+          )
+          curl -X POST -H "Content-Type: application/json" -d "$json_payload" "$DISCORD_WEBHOOK_URL"

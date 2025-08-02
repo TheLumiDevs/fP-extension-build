@@ -100,23 +100,7 @@ jobs:
         working-directory: ${{ matrix.project }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Checking for existing release/tag..."
-          # Check for release
-          if gh release view ${{ steps.get_commit_info.outputs.tag_name }} >/dev/null 2>&1; then
-            echo "release_exists=true" >> $GITHUB_OUTPUT
-            echo "Found existing release: ${{ steps.get_commit_info.outputs.tag_name }}"
-          else
-            echo "release_exists=false" >> $GITHUB_OUTPUT
-          fi
-          
-          # Check for tag independently
-          if gh api /repos/${{ github.repository }}/git/ref/tags/${{ steps.get_commit_info.outputs.tag_name }} >/dev/null 2>&1; then
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
-            echo "Found existing tag: ${{ steps.get_commit_info.outputs.tag_name }}"
-          else
-            echo "tag_exists=false" >> $GITHUB_OUTPUT
-          fi
+        run: npx ts-node ../src/check-release.ts "${{ matrix.repo }}" "${{ steps.get_commit_info.outputs.tag_name }}"
 
       - name: Determine if build should proceed
         id: should_run

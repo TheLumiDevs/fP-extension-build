@@ -1,11 +1,6 @@
 name: Build fakeProfile
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/build.yml'
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:

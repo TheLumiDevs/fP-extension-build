@@ -1,21 +1,20 @@
 # Security Policy
 
-## Supported Versions
+The Lumi Devs team and the community take all security issues in `fp-extension-build` seriously.
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Thank you for your efforts to improve the security of our project. We appreciate your responsible disclosure and will make every effort to acknowledge your contributions.
+
+## Supported Versions
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| 1.x.x   | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+If you discover a security vulnerability, please report it to us by sending on Discord. This will allow us to assess the risk and make any necessary patches before public disclosure.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+For non-sensitive issues or general questions, please open an issue on our [GitHub repository](https://github.com/TheLumiDevs/fP-extension-build/issues).
+
+We will do our best to respond to any security reports within 48 hours.

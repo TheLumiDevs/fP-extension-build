@@ -1,0 +1,11 @@
+# Subject line (keep it under 50 characters)
+
+# Body of the commit message (explain what and why, not how)
+
+# For example:
+# feat(api): add new endpoint for user profiles
+#
+# This new endpoint allows retrieving user profiles.
+# It will be used in the new user profile page.
+
+# Refer to issues or pull requests by number (e.g., "Fixes #123")

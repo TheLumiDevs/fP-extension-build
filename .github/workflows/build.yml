@@ -150,6 +150,8 @@ jobs:
       - name: Create and push tag
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
           if git rev-parse -q --verify "refs/tags/$tag_name" >/dev/null; then
             echo "Tag $tag_name already exists. Skipping tag creation."

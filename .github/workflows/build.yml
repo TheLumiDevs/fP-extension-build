@@ -50,6 +50,14 @@ jobs:
           repository: ${{ matrix.repo }}
           path: ${{ matrix.project }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Get commit info
         id: get_commit_info
         working-directory: ${{ matrix.project }}
@@ -77,7 +85,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           # Handle Co-authored-by trailers properly
-          COMMIT_MSG=$(git log -1 --pretty=%B | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+          COMMIT_MSG=$(../node_modules/.bin/ts-node ../src/get_commit.ts)
           echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
 
       - name: Cache last successful commit SHA
@@ -261,7 +269,7 @@ jobs:
             ## 📝 Build Info
             > - **Commit**
             >  - **SHA**: ${{ steps.get_commit_info.outputs.sha_display }}
-            >  - **Title**: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - **Title**: ${{ steps.get_commit_info.outputs.commit_message }}
             >  - **Author**: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build
             > - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})

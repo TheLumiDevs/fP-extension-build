@@ -1,0 +1,26 @@
+{
+  "name": "fp-extension-build",
+  "version": "1.1",
+  "description": "Extension & Userscript Auto Build For Discord Typescript Mod Client",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheLumiDevs/fP-extension-build.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TheLumiDevs/fP-extension-build/issues"
+  },
+  "homepage": "https://github.com/TheLumiDevs/fP-extension-build#readme",
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}

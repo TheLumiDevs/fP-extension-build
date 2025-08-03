@@ -1,5 +1,6 @@
 function getRandomColor(): number {
-  return Math.floor(Math.random() * 16777215);
+  // Return a random integer between 0 and 16777215 (0xFFFFFF)
+  return Math.floor(Math.random() * 16777216);
 }
 
-console.log('0x' + getRandomColor().toString(16).padStart(6, '0'));
+console.log(getRandomColor());

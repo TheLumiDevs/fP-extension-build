@@ -79,7 +79,7 @@ jobs:
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           tag_name="build-${{ matrix.project }}-${UPSTREAM_SHA}"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
             tag_name="${tag_name}-Forced"
           fi
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
@@ -183,7 +183,7 @@ jobs:
 
           title_suffix=""
           prerelease_flag=""
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
             title_suffix=" - Forced Build"
             prerelease_flag="--prerelease"
           fi

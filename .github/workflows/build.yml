@@ -67,6 +67,9 @@ jobs:
 
       - name: Get commit info
         id: get_commit_info
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         working-directory: ${{ matrix.project }}
         run: |
           UPSTREAM_SHA=$(git rev-parse HEAD)

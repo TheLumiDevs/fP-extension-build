@@ -7,7 +7,7 @@
 This repository contains the build scripts and configurations for the fP extension and userscript, designed to enhance your Discord experience with custom features and functionalities.  
 [![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml)
 
-## 🚀 Features
+## 🚀 Features 🚀
 
 <div align="left">
 
@@ -17,7 +17,7 @@ This repository contains the build scripts and configurations for the fP extensi
 
 </div>
 
-## 🛠️ Installation
+## 🛠️ Installation 🛠️
 
 <div align="left">
 
@@ -30,15 +30,15 @@ This repository contains the build scripts and configurations for the fP extensi
 
 </div>
 
-## ⚙️ Usage
+## ⚙️ Usage ⚙️
 
 *Just install and go to https://discord.com/app and enjoy*
 
-## ⚙️ Plugin Tutorial
+## ⚙️ Plugin Tutorial ⚙️
 
 Check out **[this tutorial](https://github.com/TheLumiDevs/fakeProfile/blob/main/docs/tutorial.md)**.
 
-## 🤝 Contributing
+## 🤝 Contributing 🤝
 
 Contributions are welcome! Please feel free to submit a pull request or open an issue.
 
@@ -52,7 +52,7 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 </div>
 
-## 📄 License
+## 📄 License 📄
 
 ![![CC BY-SA 4.0](https://licensebuttons.net/l/by-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-sa/4.0/)
 
@@ -62,7 +62,7 @@ You can copy, modify, public and share this material. You must give appropriate 
 
 </div>
 
-## 📜 Disclaimer
+## 📜 Disclaimer 📜
 
 <div align="left">
 

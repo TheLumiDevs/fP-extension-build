@@ -54,7 +54,7 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## 📄 License 📄
 
-![![CC BY-SA 4.0](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/CC_BY-SA_icon.svg/2560px-CC_BY-SA_icon.svg.png)](https://creativecommons.org/licenses/by-sa/4.0/deed.en)
+![![CC BY-SA 4.0 License Image](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/CC_BY-SA_icon.svg/2560px-CC_BY-SA_icon.svg.png)](https://creativecommons.org/licenses/by-sa/4.0/deed.en)
 
 <div align="left">
 

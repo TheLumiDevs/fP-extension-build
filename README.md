@@ -1,60 +1,73 @@
 <div align="center">
 
-<a href="https://kotatsu.app">
-    <img src="./.github/assets/vtuber.png" alt="Kotatsu Logo" title="Kotatsu" width="600"/>
-</a>
+  <img src="https://avatars.githubusercontent.com/u/221838119?s=200" alt="fP-extension-build Logo">
 
-# [Kotatsu Nightly](#)
+# [fP-extension-build](#)
 
-**[Kotatsu](https://github.com/KotatsuApp/Kotatsu) is a free and open-source manga reader for Android with built-in online content sources. This repository contains a nightly builds with latest changes from the [devel](https://github.com/KotatsuApp/Kotatsu/commits/devel/) branch.**
+This repository contains the build scripts and configurations for the fP extension and userscript, designed to enhance your Discord experience with custom features and functionalities.  
+[![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml)
 
-![Downloads count](https://img.shields.io/github/downloads/KotatsuApp/Kotatsu-nightly/total?color=1976d2) ![Latest Nightly build](https://img.shields.io/github/v/release/KotatsuApp/Kotatsu-nightly?color=2596be&label=latest) ![Android 5.0](https://img.shields.io/badge/android-5.0+-brightgreen) [![Sources count](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FKotatsuApp%2Fkotatsu-parsers%2Frefs%2Fheads%2Fmaster%2F.github%2Fsummary.yaml&query=total&label=manga%20sources&color=%23E9321C)](https://github.com/KotatsuApp/kotatsu-parsers) [![weblate](https://hosted.weblate.org/widgets/kotatsu/-/strings/svg-badge.svg)](https://hosted.weblate.org/engage/kotatsu/) [![Discord](https://img.shields.io/discord/898363402467045416?color=5865f2&label=discord)](https://discord.gg/NNJ5RgVBC5) [![Telegram](https://img.shields.io/badge/chat-telegram-60ACFF?)](https://t.me/kotatsuapp) [![License](https://img.shields.io/github/license/KotatsuApp/Kotatsu)](https://github.com/KotatsuApp/Kotatsu/blob/devel/LICENSE)
-
-### <img src="./.github/assets/app_icon.png" alt="Kotatsu Logo" width="16" style="vertical-align: bottom;"/> Download <img src="./.github/assets/app_icon.png" alt="Kotatsu Logo" width="16" style="vertical-align: bottom;"/>
-
-[![Download](https://rule34.xxx/counter/2.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/0.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/2.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/5.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/0.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/8.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/0.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) [![Download](https://rule34.xxx/counter/3.gif)](https://github.com/KotatsuApp/kotatsu-nightly/releases/latest) 
+## 🚀 Features
 
 <div align="left">
 
-* Nightly build can be downloaded from the [GitHub Releases](https://github.com/KotatsuApp/Kotatsu-Nightly/releases). Application has a built-in self-updating feature.
-* If you want to download a stable Kotatsu release please refer to the [main Kotatsu repository](https://github.com/KotatsuApp/Kotatsu?tab=readme-ov-file#download).
+*   **Automated Builds:** Automatically builds the extension and userscript whenever changes are pushed to the repository.
+*   **Easy to Use:** Simply commit your changes, and the GitHub Action takes care of the rest.
+*   **Extensible:** Easily configured to support different build processes.
 
 </div>
 
-### <img src="./.github/assets/app_icon.png" alt="Kotatsu Logo" width="16" style="vertical-align: bottom;"/> Notes <img src="./.github/assets/app_icon.png" alt="Kotatsu Logo" width="16" style="vertical-align: bottom;"/>
+## 🛠️ Installation
 
 <div align="left">
 
-* Nightly builds can be installed alongside with [Kotatsu](https://github.com/KotatsuApp/Kotatsu) (has a different package id)
-* Kotatsu Nightly is likely a Alpha / Beta version of [Kotatsu](https://github.com/KotatsuApp/Kotatsu) so it can be unstable / more Bugs OR better than [Kotatsu](https://github.com/KotatsuApp/Kotatsu)
-* A new nightly build will be built and published automatically by [GitHub Actions](https://github.com/features/actions)
+1.  Go to the [Releases](https://github.com/TheLumiDevs/fP-extension-build/releases) page.
+2.  Download the latest `your-extension.zip` or `your-script.user.js`.
+3.  Follow the installation instructions for your browser or userscript manager.
+
+> [!NOTE]
+> For Firefox users, you may need to disable the `xpinstall.signatures.required` setting in `about:config` to install the extension.
 
 </div>
 
-### Certificate fingerprints
+## ⚙️ Usage
 
-```plaintext
-CA:4E:C4:54:FF:E9:45:78:11:36:93:45:B7:E9:41:09:8F:08:D0:90
-```
+*Just install and go to https://discord.com/app and enjoy*
 
-```plaintext
-F4:D8:00:FA:8F:CF:24:8C:D5:EC:02:8B:4D:DC:65:35:BB:DA:07:11:55:AF:3A:C5:BB:35:82:36:1B:27:D5:6F
-```
+## ⚙️ Plugin Tutorial
 
-### License
+Check out **[this tutorial](https://github.com/TheLumiDevs/fakeProfile/blob/main/docs/tutorial.md)**.
 
-[![GNU GPLv3 Image](https://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a pull request or open an issue.
 
 <div align="left">
 
-You may copy, distribute and modify the software as long as you track changes/dates in source files. Any modifications to or software including (via compiler) GPL-licensed code must also be made available under the GPL along with build & install instructions.
+1.  Fork the repository.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a pull request.
 
 </div>
 
-### DMCA disclaimer
+## 📄 License
+
+![![CC BY-SA 4.0](https://licensebuttons.net/l/by-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-sa/4.0/)
 
 <div align="left">
 
-The developers of this application do not have any affiliation with the content available in the app. It collects content from sources that are freely available through any web browser.
+You can copy, modify, public and share this material. You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+
+</div>
+
+## 📜 Disclaimer
+
+<div align="left">
+
+> [!WARNING]
+> - This project is not affiliated with Discord or any of its subsidiaries. Use at your own risk. The authors are not responsible for any issues that may arise from using this extension or userscript.  
+> - This extension and userscript are **custom builds** and you cannot get support on official Vencord or Equicord Discord servers. You can get **banned** for using custom builds to request support.
 
 </div>

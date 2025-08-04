@@ -54,8 +54,11 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## 📄 License 📄
 
+<a href="https://creativecommons.org/licenses/by-sa/4.0/">
+
 ![![CC BY-SA 4.0 License Image](https://creativecommons.org/licenses/by-sa/4.0/)](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/CC_BY-SA_icon.svg/350px-CC_BY-SA_icon.svg.png)
 
+</a>
 <div align="left">
 
 You can copy, modify, public and share this material. You must give appropriate credit, provide a link to the license, and indicate if changes were made.

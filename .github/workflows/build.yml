@@ -49,6 +49,7 @@ jobs:
         with:
           repository: ${{ matrix.repo }}
           path: ${{ matrix.project }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,9 +68,6 @@ jobs:
 
       - name: Get commit info
         id: get_commit_info
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
         working-directory: ${{ matrix.project }}
         run: |
           UPSTREAM_SHA=$(git rev-parse HEAD)

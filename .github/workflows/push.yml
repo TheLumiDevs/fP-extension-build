@@ -1,4 +1,6 @@
 name: Show Commit Message
+permissions:
+  contents: read
 
 on:
   push:

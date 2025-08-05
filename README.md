@@ -5,7 +5,7 @@
 # [fP-extension-build](#)
 
 This repository contains the build scripts and configurations for the fP extension and userscript, designed to enhance your Discord experience with custom features and functionalities.  
-[![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml)
+[![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml) [![](https://dcbadge.limes.pink/api/server/ffmkewQ4R7?style=flat)](https://discord.gg/ffmkewQ4R7)
 
 ## 🚀 Features 🚀
 

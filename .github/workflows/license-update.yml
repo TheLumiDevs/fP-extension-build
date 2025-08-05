@@ -1,0 +1,42 @@
+name: Notify on LICENSE update
+
+on:
+  push:
+    paths:
+      - 'LICENSE'
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commit information
+        id: commit_info
+        run: |
+          echo "committer_name=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "commit_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "commit_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_url=https://github.com/${{ github.repository }}/commit/$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Send Discord Notification
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          embed-title: "📜 LICENSE file has been updated!"
+          embed-description: |
+            The LICENSE file for the repository has been modified.
+            **Committer:** ${{ steps.commit_info.outputs.committer_name }}
+            **Commit:** [${{ steps.commit_info.outputs.commit_sha }}](${{ steps.commit_info.outputs.commit_url }})
+            **Commit Message:**
+            ```
+            ${{ steps.commit_info.outputs.commit_message }}
+            ```
+          embed-color: 0x3498db
+          embed-footer-text: "Change detected at $(date -u --iso-8601=seconds)"

@@ -19,6 +19,11 @@ on:
         required: true
         type: boolean
         default: false
+      run_as_schedule:
+        description: 'Run as if it were a scheduled build'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -49,6 +54,22 @@ jobs:
         with:
           repository: ${{ matrix.repo }}
           path: ${{ matrix.project }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Cache last successful commit SHA
+        id: cache-sha
+        uses: actions/cache@v4.2.3
+        with:
+          path: last_successful_sha_${{ matrix.project }}.txt
+          key: ${{ matrix.project }}-sha-cache
 
       - name: Get commit info
         id: get_commit_info
@@ -57,7 +78,11 @@ jobs:
           UPSTREAM_SHA=$(git rev-parse HEAD)
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "tag_name=build-${{ matrix.project }}-${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
+          tag_name="build-${{ matrix.project }}-${UPSTREAM_SHA}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
+            tag_name="${tag_name}-Forced"
+          fi
+          echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           SHA_DISPLAY="[\`$(git rev-parse --short HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
           LAST_BUILT_SHA=""
           if [[ -f ../last_successful_sha_${{ matrix.project }}.txt ]]; then
@@ -77,35 +102,15 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
           # Handle Co-authored-by trailers properly
-          COMMIT_MSG=$(git log -1 --pretty=%B | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+          COMMIT_MSG=$(../node_modules/.bin/ts-node ../src/get_commit.ts)
           echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
-
-      - name: Cache last successful commit SHA
-        id: cache-sha
-        uses: actions/cache@v4.2.3
-        with:
-          path: last_successful_sha_${{ matrix.project }}.txt
-          key: ${{ matrix.project }}-sha-cache
 
       - name: Determine if build should proceed
         id: should_run
         run: |
           PROCEED="false"
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            # Check for last successful SHA from cache
-            if [[ -f last_successful_sha_${{ matrix.project }}.txt ]]; then
-              LAST_BUILT_SHA=$(cat last_successful_sha_${{ matrix.project }}.txt)
-              if [[ "${{ steps.get_commit_info.outputs.commit_sha }}" == "$LAST_BUILT_SHA" ]]; then
-                echo "${{ matrix.project }} has no new commits, skipping."
-              else
-                echo "New ${{ matrix.project }} commit found, building..."
-                PROCEED="true"
-              fi
-            else
-              # No cache, first run for this project
-              echo "No previous build SHA found for ${{ matrix.project }}, building..."
-              PROCEED="true"
-            fi
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "push" ]]; then
+            PROCEED="true"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.project }}" == "All" || "${{ github.event.inputs.project }}" == "${{ matrix.project }}" ]]; then
               PROCEED="true"
@@ -143,11 +148,25 @@ jobs:
         if: steps.should_run.outputs.decision == 'true'
         run: |
           openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 1 -nodes -subj '/CN=example.com' >/dev/null 2>&1
-          echo "FINGERPRINT1=$(openssl x509 -in cert.pem -fingerprint -sha1 -noout | sed 's/SHA1 Fingerprint=//' | tr -d ':')" >> $GITHUB_OUTPUT
-          echo "FINGERPRINT2=$(openssl x509 -in cert.pem -fingerprint -sha256 -noout | sed 's/SHA256 Fingerprint=//' | tr -d ':')" >> $GITHUB_OUTPUT
+          FINGERPRINT1_RAW=$(openssl x509 -in cert.pem -fingerprint -sha1 -noout | sed 's/SHA1 Fingerprint=//' | tr -d ':')
+          FINGERPRINT2_RAW=$(openssl x509 -in cert.pem -fingerprint -sha256 -noout | sed 's/SHA256 Fingerprint=//' | tr -d ':')
+          echo "FINGERPRINT1=$(echo "$FINGERPRINT1_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
+          echo "FINGERPRINT2=$(echo "$FINGERPRINT2_RAW" | node_modules/.bin/ts-node src/format-fingerprint.ts)" >> $GITHUB_OUTPUT
 
+      - name: Create and push tag
+        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true' || github.event.inputs.run_as_schedule == 'true')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
+          if git ls-remote --exit-code origin "refs/tags/$tag_name" > /dev/null 2>&1; then
+            echo "Tag $tag_name already exists in remote. Skipping tag creation."
+          else
+            git tag -fa "$tag_name" -m "Release $tag_name"
+            git push origin "$tag_name"
+          fi
       - name: Create Release and Upload Assets
-        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true')
+        if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true' || github.event.inputs.run_as_schedule == 'true')
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -164,7 +183,7 @@ jobs:
 
           title_suffix=""
           prerelease_flag=""
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
             title_suffix=" - Forced Build"
             prerelease_flag="--prerelease"
           fi
@@ -219,7 +238,7 @@ jobs:
               "$userscript_asset" \
               --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
               --notes-file "$notes_file" \
-              --verify
+              --latest
           fi
 
           release_url=$(gh release view "$tag_name" --json url -q .url)
@@ -246,10 +265,10 @@ jobs:
           echo "firefox_url=$firefox_url" >> $GITHUB_OUTPUT
           echo "userscript_url=$userscript_url" >> $GITHUB_OUTPUT
 
-      - name: Get random quote
+      - name: Get random color
         if: steps.create_release.outputs.tag_name != ''
-        id: random_quote
-        run: echo "quote=$(shuf -n 1 quotes.txt)" >> $GITHUB_OUTPUT
+        id: random_color
+        run: echo "embed_color=$(node_modules/.bin/ts-node src/random-color.ts)" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
         if: steps.create_release.outputs.tag_name != ''
@@ -261,7 +280,7 @@ jobs:
             ## 📝 Build Info
             > - **Commit**
             >  - **SHA**: ${{ steps.get_commit_info.outputs.sha_display }}
-            >  - **Title**: [${{ steps.get_commit_info.outputs.commit_message }}](https://github.com/${{ matrix.repo }}/commit/${{ steps.get_commit_info.outputs.commit_sha }})
+            >  - **Title**: ${{ steps.get_commit_info.outputs.commit_message }}
             >  - **Author**: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
             ## ℹ️ About this build
             > - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})
@@ -284,7 +303,7 @@ jobs:
             ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
             ```
             -# Don't forget add an star for our **[repository](https://github.com/TheLumiDevs/fP-extension-build)**
-          embed-color: 0x2ec27c
+          embed-color: ${{ steps.random_color.outputs.embed_color }}
           embed-footer-text: "Build completed at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
 
@@ -296,13 +315,31 @@ jobs:
           echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
           echo "failed_command=$(tail -n 20 ${{ runner.temp }}/_temp/step*.log)" >> $GITHUB_OUTPUT
 
-      - name: Get random joke
+      - name: Restore last failure notification timestamp
         if: failure()
-        id: random_joke
-        run: echo "joke=$(shuf -n 1 jokes.txt)" >> $GITHUB_OUTPUT
+        id: restore_failure_ts
+        uses: actions/cache@v4
+        with:
+          path: last_failure_notification_timestamp_${{ matrix.project }}.txt
+          key: failure-notification-timestamp-${{ matrix.project }}
+
+      - name: Decide whether to send failure notification
+        if: failure()
+        id: decide_failure_notification
+        run: |
+          should_notify="true"
+          if [[ -f last_failure_notification_timestamp_${{ matrix.project }}.txt ]]; then
+            last_ts=$(cat last_failure_notification_timestamp_${{ matrix.project }}.txt)
+            current_ts=$(date +%s)
+            if (( current_ts - last_ts < 3600 )); then
+              should_notify="false"
+              echo "Last failure notification was sent less than an hour ago. Skipping."
+            fi
+          fi
+          echo "should_notify=${should_notify}" >> $GITHUB_OUTPUT
 
       - name: Send failure notification
-        if: failure()
+        if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -326,3 +363,15 @@ jobs:
           embed-color: 0xe74c3c
           embed-footer-text: "Failure detected at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
+
+      - name: Update failure notification timestamp
+        if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
+        run: |
+          echo "$(date +%s)" > last_failure_notification_timestamp_${{ matrix.project }}.txt
+
+      - name: Cache failure notification timestamp
+        if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: last_failure_notification_timestamp_${{ matrix.project }}.txt
+          key: failure-notification-timestamp-${{ matrix.project }}

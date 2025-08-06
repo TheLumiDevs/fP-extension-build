@@ -1,13 +1,3 @@
-# Subject: (Keep under 50 characters)
-# ---------------------------------
 Lazy commit
 
-# Body of the commit message (explain what and why, not how)
 Author lazy wirte a commit message so check commit deails to know what this commit does.
-# For example:
-# feat(api): add new endpoint for user profiles
-#
-# This new endpoint allows retrieving user profiles.
-# It will be used in the new user profile page.
-
-# Refer to issues or pull requests by number (e.g., "Fixes #123")

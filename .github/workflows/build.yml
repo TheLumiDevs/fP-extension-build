@@ -156,28 +156,100 @@ jobs:
       - name: Create and push tag
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true' || github.event.inputs.run_as_schedule == 'true')
         run: |
-          node_modules/.bin/ts-node src/release.ts create-tag "${{ steps.get_commit_info.outputs.tag_name }}"
-
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
+          if git ls-remote --exit-code origin "refs/tags/$tag_name" > /dev/null 2>&1; then
+            echo "Tag $tag_name already exists in remote. Skipping tag creation."
+          else
+            git tag -fa "$tag_name" -m "Release $tag_name"
+            git push origin "$tag_name"
+          fi
       - name: Create Release and Upload Assets
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true' || github.event.inputs.run_as_schedule == 'true')
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_LOG_JSON: ${{ steps.get_commit_info.outputs.commit_log }}
+        shell: bash
         run: |
-          is_prerelease="false"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
-            is_prerelease="true"
+          set -exo pipefail
+          tag_name="${{ steps.get_commit_info.outputs.tag_name }}"
+
+          if gh release view "$tag_name" >/dev/null 2>&1; then
+            echo "Release $tag_name already exists. Skipping."
+            exit 0
           fi
+
+          title_suffix=""
+          prerelease_flag=""
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
+            title_suffix=" - Forced Build"
+            prerelease_flag="--prerelease"
+          fi
+
+          chrome_asset="${{ matrix.project }}/dist/extension-chrome.zip"
+          firefox_asset="${{ matrix.project }}/dist/extension-firefox.zip"
+          userscript_asset="${{ matrix.project }}/dist/${{ matrix.userscript_name }}"
+
+          # Get asset details
+          chrome_size=$(stat -c%s "$chrome_asset")
+          chrome_sha256=$(sha256sum "$chrome_asset" | awk '{print $1}')
+          echo "chrome_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $chrome_size)" >> $GITHUB_OUTPUT
+          echo "chrome_sha256=$chrome_sha256" >> $GITHUB_OUTPUT
+
+          firefox_size=$(stat -c%s "$firefox_asset")
+          firefox_sha256=$(sha256sum "$firefox_asset" | awk '{print $1}')
+          echo "firefox_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $firefox_size)" >> $GITHUB_OUTPUT
+          echo "firefox_sha256=$firefox_sha256" >> $GITHUB_OUTPUT
+
+          userscript_size=$(stat -c%s "$userscript_asset")
+          userscript_sha256=$(sha256sum "$userscript_asset" | awk '{print $1}')
+          echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $userscript_size)" >> $GITHUB_OUTPUT
+          echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
+
+          # Create temp notes file safely
+          notes_file=$(mktemp)
+          {
+            echo "### ${{ matrix.project }} commit"
+            echo
+            echo "$COMMIT_LOG_JSON" | jq -r
+          } > "$notes_file"
+
+          echo "Creating new release $tag_name."
+          echo "Assets:"
+          ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
+
+          # Use a static command based on the prerelease flag to avoid dynamic construction
+          if [[ -n "$prerelease_flag" ]]; then
+            echo "Creating a prerelease."
+            gh release create "$tag_name" \
+              "$chrome_asset" \
+              "$firefox_asset" \
+              "$userscript_asset" \
+              --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
+              --notes-file "$notes_file" \
+              --prerelease
+          else
+            echo "Creating a stable release."
+            gh release create "$tag_name" \
+              "$chrome_asset" \
+              "$firefox_asset" \
+              "$userscript_asset" \
+              --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
+              --notes-file "$notes_file" \
+              --latest
+          fi
+
+          release_url=$(gh release view "$tag_name" --json url -q .url)
           
-          node_modules/.bin/ts-node src/release.ts create-release \
-            "${{ steps.get_commit_info.outputs.tag_name }}" \
-            "${{ matrix.project }}" \
-            "${{ matrix.userscript_name }}" \
-            '${{ steps.get_commit_info.outputs.commit_log }}' \
-            "${{ steps.current-time.outputs.date }}" \
-            "$is_prerelease" \
-            "${{ steps.get_commit_info.outputs.commit_sha }}"
+          # Cleanup
+          rm "$notes_file"
+
+          echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
+          echo "html_url=${release_url}" >> $GITHUB_OUTPUT
+          echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
+          echo "title_suffix=${title_suffix}" >> $GITHUB_OUTPUT
 
       - name: Get direct download URLs
         if: steps.create_release.outputs.tag_name != ''

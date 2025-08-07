@@ -20,7 +20,7 @@ function getCommitHistory(): string {
 
         // Get commits between last release and HEAD
         const rawLog = execSync(
-            `git log --pretty=format:"%h|%s|%b|%an" ${previousTag}..HEAD --no-merges`
+            `git log --pretty=format:"%h%x1f%s%x1f%b%x1f%an%x1e" ${previousTag}..HEAD --no-merges`
         ).toString().trim();
 
         return formatCommitLog(rawLog);
@@ -34,12 +34,16 @@ function getCommitHistory(): string {
  * Formats raw git log output into markdown
  */
 function formatCommitLog(rawLog: string): string {
-    return rawLog.split('\n')
+    if (!rawLog) return '';
+
+    return rawLog.split('\x1e')
+        .map(commit => commit.trim())
+        .filter(commit => commit)
         .map(line => {
-            const [hash, subject, body, author] = line.split('|');
-            const cleanBody = body.replace(/[\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
+            const [hash, subject, body, author] = line.split('\x1f');
+            const cleanBody = (body || '').replace(/[\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
             const fullMessage = [subject, cleanBody].filter(Boolean).join(' - ');
-            return `- ${fullMessage} (${hash}) - ${author}`;
+            return `- ${fullMessage} (${hash || ''}) - ${author || ''}`;
         })
         .join('\n');
 }

@@ -44,6 +44,7 @@ jobs:
             repo: Vendicated/Vencord
             userscript_name: Vencord.user.js
 
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -373,17 +374,3 @@ jobs:
         with:
           path: last_failure_notification_timestamp_${{ matrix.project }}.txt
           key: failure-notification-timestamp-${{ matrix.project }}
-
-      - name: Generate Summary
-        if: always()
-        run: |
-          if [[ "${{ job.status }}" == "success" ]]; then
-            echo "### ✅ ${{ matrix.project }}: Succeeded" >> $GITHUB_STEP_SUMMARY
-            echo "- **Commit:** ${{ steps.get_commit_info.outputs.sha_display }}" >> $GITHUB_STEP_SUMMARY
-            if [[ -n "${{ steps.create_release.outputs.html_url }}" ]]; then
-              echo "- **Release:** [View Release](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "### ❌ ${{ matrix.project }}: Failed" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY

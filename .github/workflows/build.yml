@@ -368,9 +368,3 @@ jobs:
         run: |
           echo "$(date +%s)" > last_failure_notification_timestamp_${{ matrix.project }}.txt
 
-      - name: Cache failure notification timestamp
-        if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: last_failure_notification_timestamp_${{ matrix.project }}.txt
-          key: failure-notification-timestamp-${{ matrix.project }}

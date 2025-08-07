@@ -43,8 +43,6 @@ jobs:
           - project: Vencord
             repo: Vendicated/Vencord
             userscript_name: Vencord.user.js
-    outputs:
-      result: ${{ steps.export_result.outputs.result }}
 
     steps:
       - name: Checkout
@@ -376,43 +374,16 @@ jobs:
           path: last_failure_notification_timestamp_${{ matrix.project }}.txt
           key: failure-notification-timestamp-${{ matrix.project }}
 
-      - name: Export result
-        id: export_result
+      - name: Generate Summary
         if: always()
         run: |
-          JSON_RESULT=$(jq -n \
-            --arg status "${{ job.status }}" \
-            --arg release_url "${{ steps.create_release.outputs.html_url }}" \
-            --arg commit "${{ steps.get_commit_info.outputs.sha_display }}" \
-            '{status: $status, release_url: $release_url, commit: $commit}')
-          echo "result=$JSON_RESULT" >> $GITHUB_OUTPUT
-
-  summarize:
-    runs-on: ubuntu-latest
-    needs: build
-    if: always()
-    steps:
-      - name: Generate summary
-        env:
-          BUILD_RESULTS: ${{ toJSON(needs.build.outputs) }}
-        run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          for project in $(echo "$BUILD_RESULTS" | jq -r 'keys[]'); do
-            result=$(echo "$BUILD_RESULTS" | jq -r ".${project}.result")
-            status=$(echo "$result" | jq -r .status)
-            commit=$(echo "$result" | jq -r .commit)
-            release_url=$(echo "$result" | jq -r .release_url)
-
-            if [[ "$status" == "success" ]]; then
-              echo "### ✅ ${project}: Succeeded" >> $GITHUB_STEP_SUMMARY
-              echo "- **Commit:** $commit" >> $GITHUB_STEP_SUMMARY
-              if [[ -n "$release_url" ]]; then
-                echo "- **Release:** [View Release]($release_url)" >> $GITHUB_STEP_SUMMARY
-              fi
-            else
-              echo "### ❌ ${project}: Failed" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ ${{ matrix.project }}: Succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "- **Commit:** ${{ steps.get_commit_info.outputs.sha_display }}" >> $GITHUB_STEP_SUMMARY
+            if [[ -n "${{ steps.create_release.outputs.html_url }}" ]]; then
+              echo "- **Release:** [View Release](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
             fi
-            echo "" >> $GITHUB_STEP_SUMMARY
-          done
+          else
+            echo "### ❌ ${{ matrix.project }}: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY

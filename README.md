@@ -67,10 +67,8 @@ You can copy, modify, public and share this material. You must give appropriate 
 
 ## 📜 Disclaimer 📜
 
-<div align="left">
+</div>
 
 > [!WARNING]
 > - This project is not affiliated with Discord or any of its subsidiaries. Use at your own risk. The authors are not responsible for any issues that may arise from using this extension or userscript.  
-> - This extension and userscript are **custom builds** and you cannot get support on official Vencord or Equicord Discord servers. You can get **banned** for using custom builds to request support.
-
-</div>
+> - This extension and userscript are **custom builds** and you cannot get support on official Vencord or Equicord Discord servers. You can get **banned** for using custom builds to request support.  

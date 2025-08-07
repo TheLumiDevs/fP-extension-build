@@ -77,21 +77,20 @@ jobs:
         run: |
           UPSTREAM_SHA=$(git rev-parse HEAD)
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
-          echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
           tag_name="build-${{ matrix.project }}-${UPSTREAM_SHA}"
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
             tag_name="${tag_name}-Forced"
           fi
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
-          SHA_DISPLAY="[\`$(git rev-parse --short HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
+          SHA_DISPLAY="[\`$(git rev-parse --short=7 HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
           LAST_BUILT_SHA=""
           if [[ -f ../last_successful_sha_${{ matrix.project }}.txt ]]; then
             LAST_BUILT_SHA=$(cat ../last_successful_sha_${{ matrix.project }}.txt)
-            LAST_BUILT_SHA_SHORT=$(git rev-parse --short $LAST_BUILT_SHA)
+            LAST_BUILT_SHA_SHORT=$(git rev-parse --short=7 $LAST_BUILT_SHA)
             echo "last_commit_sha=${LAST_BUILT_SHA}" >> $GITHUB_OUTPUT
             echo "last_commit_sha_short=${LAST_BUILT_SHA_SHORT}" >> $GITHUB_OUTPUT
             COMMIT_LOG=$(git log --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
-            SHA_DISPLAY="[\`${LAST_BUILT_SHA_SHORT}\`](https://github.com/${{ matrix.repo }}/commit/${LAST_BUILT_SHA}) > ${SHA_DISPLAY}"
           else
             COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
           fi

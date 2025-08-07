@@ -1,41 +1,56 @@
 import { execSync } from 'child_process';
 
 /**
- * Retrieves the subject of the last git commit.
- * @returns {string} The commit subject.
- * @throws {Error} If the git command fails.
+ * Fetches latest tags from remote and gets commit history since last release
+ * @returns {string} Formatted markdown of commits
  */
-function getCommitSubject(): string {
+function getCommitHistory(): string {
     try {
-        return execSync('git log -1 --pretty=%s', { encoding: 'utf-8' }).trim();
+        // Ensure we have latest tags
+        execSync('git fetch --tags', { stdio: 'inherit' });
+        
+        // Get last two tags sorted by date
+        const tags = execSync('git tag --sort=-creatordate | head -n 2')
+            .toString()
+            .trim()
+            .split('\n');
+
+        const currentTag = tags[0];
+        const previousTag = tags[1] || 'initial-commit';
+
+        // Get commits between last release and HEAD
+        const rawLog = execSync(
+            `git log --pretty=format:"%h|%s|%b|%an" ${previousTag}..HEAD --no-merges`
+        ).toString().trim();
+
+        return formatCommitLog(rawLog);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to execute git command: ${errorMessage}`);
+        throw new Error(`Failed to get commit history: ${errorMessage}`);
     }
 }
 
 /**
- * Sanitizes a string for use in a Markdown link title by escaping special characters.
- * @param {string} text The text to sanitize.
- * @returns {string} The sanitized text.
+ * Formats raw git log output into markdown
  */
-function sanitizeForMarkdownLink(text: string): string {
-    // Escape characters that have special meaning in Markdown link titles: [ and ]
-    return text.replace(/[\[\]]/g, '\\$&');
+function formatCommitLog(rawLog: string): string {
+    return rawLog.split('\n')
+        .map(line => {
+            const [hash, subject, body, author] = line.split('|');
+            const cleanBody = body.replace(/[\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
+            const fullMessage = [subject, cleanBody].filter(Boolean).join(' - ');
+            return `- ${fullMessage} (${hash}) - ${author}`;
+        })
+        .join('\n');
 }
 
-/**
- * Main script execution.
- */
 function main() {
     try {
-        const commitSubject = getCommitSubject();
-        const sanitizedSubject = sanitizeForMarkdownLink(commitSubject);
-        console.log(sanitizedSubject);
+        const commitLog = getCommitHistory();
+        console.log(commitLog);
     } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        // Log the error to stderr
-        console.error(`Failed to get commit info: ${errorMessage}`);
+        console.error(`Failed to generate commit log: ${errorMessage}`);
         process.exit(1);
     }
 }

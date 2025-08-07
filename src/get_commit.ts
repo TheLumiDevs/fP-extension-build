@@ -51,7 +51,7 @@ function formatCommitLog(rawLog: string): string {
 function main() {
     try {
         const commitLog = getCommitHistory();
-        console.log(commitLog);
+        console.log(JSON.stringify(commitLog));
     } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);
         console.error(`Failed to generate commit log: ${errorMessage}`);

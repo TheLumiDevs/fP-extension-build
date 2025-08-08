@@ -26,10 +26,12 @@ This repository contains the build scripts and configurations for the fP extensi
 2.  Download the latest `your-extension.zip` or `your-script.user.js`.
 3.  Follow the installation instructions for your browser or userscript manager.
 
+</div>
+
 > [!NOTE]
 > For Firefox users, you may need to disable the `xpinstall.signatures.required` setting in `about:config` to install the extension.
 
-</div>
+<div align="center">
 
 ## ⚙️ Usage ⚙️
 

@@ -125,6 +125,11 @@ jobs:
           mkdir -p ${{ matrix.project }}/src/userplugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/userplugins/fakeProfile
 
+      - name: Add fakeProfile CSP
+        if: steps.should_run.outputs.decision == 'true'
+        run: |
+          node_modules/.bin/ts-node src/add-csp.ts ${{ matrix.project }}
+
       - name: Build extension and userscript
         if: steps.should_run.outputs.decision == 'true'
         working-directory: ${{ matrix.project }}
@@ -269,42 +274,29 @@ jobs:
         id: random_color
         run: echo "embed_color=$(node_modules/.bin/ts-node src/random-color.ts)" >> $GITHUB_OUTPUT
 
-      - name: Send Discord Notification
+      - name: Send sussess message to Discord
         if: steps.create_release.outputs.tag_name != ''
-        uses: tsickert/discord-webhook@v7.0.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          embed-title: "🎉 fakeProfile for ${{ matrix.project }} has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉"
-          embed-description: |
-            ## 📝 Build Info
-            > - **Commit**
-            >  - **SHA**: ${{ steps.get_commit_info.outputs.sha_display }}
-            >  - **Title**: ${{ steps.get_commit_info.outputs.commit_message }}
-            >  - **Author**: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})
-            ## ℹ️ About this build
-            > - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})
-            > - **Build At**: <t:${{ steps.current-time.outputs.timestamp }}:f> (<t:${{ steps.current-time.outputs.timestamp }}:R>)
-            > - **Project**: ${{ matrix.project }}
-            > - **Run ID**: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            > - **Run on branch**: `${{ github.ref }}`
-            ## 📥 Download
-            > - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})** **Size:** `${{ steps.create_release.outputs.chrome_size }}`
-            >  - SHA256: `${{ steps.create_release.outputs.chrome_sha256 }}`
-            > - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`
-            >  - SHA256: `${{ steps.create_release.outputs.firefox_sha256 }}`
-            > - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`
-            >  - SHA256: `${{ steps.create_release.outputs.userscript_sha256 }}`
-            ## Certificate Fingerprints
-            ```plaintext
-            ${{ steps.cert-fingerprints.outputs.FINGERPRINT1 }}
-            ```
-            ```plaintext
-            ${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}
-            ```
-            -# Don't forget add an star for our **[repository](https://github.com/TheLumiDevs/fP-extension-build)**
-          embed-color: ${{ steps.random_color.outputs.embed_color }}
-          embed-footer-text: "Build completed at ${{ steps.current-time.outputs.footer_time }}"
-          embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_FILE_PATHS: "${{ matrix.project }}/dist/extension-chrome.zip,${{ matrix.project }}/dist/extension-firefox.zip,${{ matrix.project }}/dist/${{ matrix.userscript_name }}"
+          DISCORD_PAYLOAD: |
+            {
+              "content": "A new build for **${{ matrix.project }}** is available!",
+              "embeds": [
+                {
+                  "title": "🎉 fakeProfile for __${{ matrix.project }}__ has a new build!${{ steps.create_release.outputs.title_suffix }} 🎉",
+                  "description": "## 📝 Build Info\n> - **Commit**\n>  - **SHA**: ${{ steps.get_commit_info.outputs.sha_display }}\n>  - **Title**: ${{ steps.get_commit_info.outputs.commit_message }}\n>  - **Author**: [${{ steps.get_commit_info.outputs.commit_author }}](https://github.com/${{ matrix.repo }}/commits?author=${{ steps.get_commit_info.outputs.commit_author }})\n## ℹ️ About this build\n> - **Release**: [${{ steps.current-time.outputs.date }}${{ steps.create_release.outputs.title_suffix }}](${{ steps.create_release.outputs.html_url }})\n> - **Build At**: <t:${{ steps.current-time.outputs.timestamp }}:f> (<t:${{ steps.current-time.outputs.timestamp }}:R>)\n> - **Project**: ${{ matrix.project }}\n> - **Run ID**: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n> - **Run on branch**: `${{ github.ref }}`\n## 📥 Download\n> - **Chrome Extension**: **[Click Here](${{ steps.get_download_urls.outputs.chrome_url }})** **Size:** `${{ steps.create_release.outputs.chrome_size }}`\n>  - SHA256: `${{ steps.create_release.outputs.chrome_sha256 }}`\n> - **Firefox Extension**: **[Click Here](${{ steps.get_download_urls.outputs.firefox_url }})** **Size:** `${{ steps.create_release.outputs.firefox_size }}`\n>  - SHA256: `${{ steps.create_release.outputs.firefox_sha256 }}`\n> - **Userscript**: **[Click Here](${{ steps.get_download_urls.outputs.userscript_url }})** **Size:** `${{ steps.create_release.outputs.userscript_size }}`\n>  - SHA256: `${{ steps.create_release.outputs.userscript_sha256 }}`\n## Certificate Fingerprints\n```plaintext\n${{ steps.cert-fingerprints.outputs.FINGERPRINT1 }}\n```\n```plaintext\n${{ steps.cert-fingerprints.outputs.FINGERPRINT2 }}\n```\n-# Don't forget add an star for our **[repository](https://github.com/TheLumiDevs/fP-extension-build)**",
+                  "color": ${{ steps.random_color.outputs.embed_color }},
+                  "footer": {
+                    "text": "Build completed at ${{ steps.current-time.outputs.footer_time }}",
+                    "icon_url": "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
+                  }
+                }
+              ]
+            }
+        run: |
+          npm install
+          node_modules/.bin/ts-node src/send-webhook.ts
 
       - name: Capture build error details
         if: failure()
@@ -316,11 +308,13 @@ jobs:
           log_data=$(ts-node src/get-failed-step-log.ts)
           log_content=$(echo "$log_data" | jq -r .log)
           step_name=$(echo "$log_data" | jq -r .stepName)
+          log_file=$(echo "$log_data" | jq -r .logFile)
           echo "failed_command<<EOF" >> $GITHUB_OUTPUT
           echo "$log_content" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "error_step=$step_name" >> $GITHUB_OUTPUT
           echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "log_file=$log_file" >> $GITHUB_OUTPUT
 
       - name: Restore last failure notification timestamp
         if: failure()
@@ -345,31 +339,29 @@ jobs:
           fi
           echo "should_notify=${should_notify}" >> $GITHUB_OUTPUT
 
-      - name: Send failure notification
+      - name: Send fail message to Discord
         if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
-        uses: tsickert/discord-webhook@v7.0.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          embed-title: "🚨 ${{ matrix.project }} Build Failed - Action Required"
-          embed-description: |
-            ## ❌ Build Failure Details
-            **Project:** ${{ matrix.project }}
-            **Failed Step:** `${{ steps.capture_error.outputs.error_step }}`
-            **Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})
-            **Branch:** `${{ github.ref }}`
-
-            ## 📝 Log Output
-            ```text
-            ${{ steps.capture_error.outputs.failed_command }}
-            ```
-
-            ## 🛠️ Required Action
-            1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }}) for more details.
-            2. Review the failed step and the log output above to diagnose the issue.
-            3. Re-run the workflow after applying the necessary fixes.
-          embed-color: 0xe74c3c
-          embed-footer-text: "Failure detected at ${{ steps.current-time.outputs.footer_time }}"
-          embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_FILE_PATHS: ${{ steps.capture_error.outputs.log_file }}
+          DISCORD_PAYLOAD: |
+            {
+              "content": "The build for **${{ matrix.project }}** has failed.",
+              "embeds": [
+                {
+                  "title": "🚨 ${{ matrix.project }} Build Failed - Action Required",
+                  "description": "## ❌ Build Failure Details\n**Project:** ${{ matrix.project }}\n**Failed Step:** `${{ steps.capture_error.outputs.error_step }}`\n**Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})\n**Branch:** `${{ github.ref }}`\n\n## 📝 Log Output\n```text\n${{ steps.capture_error.outputs.failed_command }}\n```\n\n## 🛠️ Required Action\n1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }}) for more details.\n2. Review the failed step and the log output above to diagnose the issue.\n3. Re-run the workflow after applying the necessary fixes.",
+                  "color": 0xe74c3c,
+                  "footer": {
+                    "text": "Failure detected at ${{ steps.current-time.outputs.footer_time }}",
+                    "icon_url": "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
+                  }
+                }
+              ]
+            }
+        run: |
+          npm install
+          node_modules/.bin/ts-node src/send-webhook.ts
 
       - name: Update failure notification timestamp
         if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'

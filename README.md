@@ -5,7 +5,8 @@
 # [fP-extension-build](#)
 
 This repository contains the build scripts and configurations for the fP extension and userscript, designed to enhance your Discord experience with custom features and functionalities.  
-[![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml) [![](https://dcbadge.limes.pink/api/server/ffmkewQ4R7?style=flat)](https://discord.gg/ffmkewQ4R7)
+![GitHub Repo stars](https://img.shields.io/github/stars/TheLumiDevs/fP-extension-build?style=for-the-badge&logo=Github&logoColor=ffffff&logoSize=20&label=STAR&labelColor=%23EE7D51&color=%230D1117&link=https%3A%2F%2Fgithub.com%2FTheLumiDevs%2FfP-extension-build) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/TheLumiDevs/fP-extension-build/build.yml?branch=master&event=schedule&style=for-the-badge&logo=githubactions&logoColor=ffffff&logoSize=20&label=STATUS&labelColor=%23EE7D53&color=%230D1117&link=https%3A%2F%2Fgithub.com%2FTheLumiDevs%2FfP-extension-build%2Factions%2Fworkflows%2Fbuild.yml) ![Discord](https://img.shields.io/discord/1117373291095662623?style=for-the-badge&logo=discord&logoColor=ffffff&logoSize=20&label=LUMI%20COMMUNITY&labelColor=%235865F2&color=%230D1117&link=https%3A%2F%2Fdiscord.gg%2FffmkewQ4R7)  
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) ![YAML](https://img.shields.io/badge/yaml-%23ffffff.svg?style=for-the-badge&logo=yaml&logoColor=151515) ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 
 ## 🚀 Features 🚀
 

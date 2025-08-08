@@ -125,6 +125,11 @@ jobs:
           mkdir -p ${{ matrix.project }}/src/userplugins
           git clone https://github.com/TheLumiDevs/fakeProfile.git ${{ matrix.project }}/src/userplugins/fakeProfile
 
+      - name: Add fakeProfile CSP
+        if: steps.should_run.outputs.decision == 'true'
+        run: |
+          node_modules/.bin/ts-node src/add-csp.ts ${{ matrix.project }}
+
       - name: Build extension and userscript
         if: steps.should_run.outputs.decision == 'true'
         working-directory: ${{ matrix.project }}

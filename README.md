@@ -5,7 +5,7 @@
 # [fP-extension-build](#)
 
 This repository contains the build scripts and configurations for the fP extension and userscript, designed to enhance your Discord experience with custom features and functionalities.  
-[![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml)
+[![Build fakeProfile](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml/badge.svg)](https://github.com/TheLumiDevs/fP-extension-build/actions/workflows/build.yml) [![](https://dcbadge.limes.pink/api/server/ffmkewQ4R7?style=flat)](https://discord.gg/ffmkewQ4R7)
 
 ## 🚀 Features 🚀
 
@@ -67,10 +67,8 @@ You can copy, modify, public and share this material. You must give appropriate 
 
 ## 📜 Disclaimer 📜
 
-<div align="left">
+</div>
 
 > [!WARNING]
 > - This project is not affiliated with Discord or any of its subsidiaries. Use at your own risk. The authors are not responsible for any issues that may arise from using this extension or userscript.  
-> - This extension and userscript are **custom builds** and you cannot get support on official Vencord or Equicord Discord servers. You can get **banned** for using custom builds to request support.
-
-</div>
+> - This extension and userscript are **custom builds** and you cannot get support on official Vencord or Equicord Discord servers. You can get **banned** for using custom builds to request support.  

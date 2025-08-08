@@ -2,7 +2,7 @@ name: Build fakeProfile
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       project:
@@ -77,21 +77,20 @@ jobs:
         run: |
           UPSTREAM_SHA=$(git rev-parse HEAD)
           echo "commit_sha=${UPSTREAM_SHA}" >> $GITHUB_OUTPUT
-          echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
           tag_name="build-${{ matrix.project }}-${UPSTREAM_SHA}"
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.run_as_schedule }}" != "true" ]]; then
             tag_name="${tag_name}-Forced"
           fi
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
-          SHA_DISPLAY="[\`$(git rev-parse --short HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
+          SHA_DISPLAY="[\`$(git rev-parse --short=7 HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
           LAST_BUILT_SHA=""
           if [[ -f ../last_successful_sha_${{ matrix.project }}.txt ]]; then
             LAST_BUILT_SHA=$(cat ../last_successful_sha_${{ matrix.project }}.txt)
-            LAST_BUILT_SHA_SHORT=$(git rev-parse --short $LAST_BUILT_SHA)
+            LAST_BUILT_SHA_SHORT=$(git rev-parse --short=7 $LAST_BUILT_SHA)
             echo "last_commit_sha=${LAST_BUILT_SHA}" >> $GITHUB_OUTPUT
             echo "last_commit_sha_short=${LAST_BUILT_SHA_SHORT}" >> $GITHUB_OUTPUT
             COMMIT_LOG=$(git log --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
-            SHA_DISPLAY="[\`${LAST_BUILT_SHA_SHORT}\`](https://github.com/${{ matrix.repo }}/commit/${LAST_BUILT_SHA}) > ${SHA_DISPLAY}"
           else
             COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
           fi
@@ -310,10 +309,18 @@ jobs:
       - name: Capture build error details
         if: failure()
         id: capture_error
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_NAME: ${{ matrix.project }}
         run: |
-          echo "error_step=${{ join(matrix.project) }} failed at step '${{ github.job }}'" >> $GITHUB_OUTPUT
+          log_data=$(ts-node src/get-failed-step-log.ts)
+          log_content=$(echo "$log_data" | jq -r .log)
+          step_name=$(echo "$log_data" | jq -r .stepName)
+          echo "failed_command<<EOF" >> $GITHUB_OUTPUT
+          echo "$log_content" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "error_step=$step_name" >> $GITHUB_OUTPUT
           echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
-          echo "failed_command=$(tail -n 20 ${{ runner.temp }}/_temp/step*.log)" >> $GITHUB_OUTPUT
 
       - name: Restore last failure notification timestamp
         if: failure()
@@ -347,19 +354,19 @@ jobs:
           embed-description: |
             ## ❌ Build Failure Details
             **Project:** ${{ matrix.project }}
-            **Failed Step:** ${{ steps.capture_error.outputs.error_step }}
+            **Failed Step:** `${{ steps.capture_error.outputs.error_step }}`
             **Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})
             **Branch:** `${{ github.ref }}`
-            
-            ## 📝 Last Command Output
+
+            ## 📝 Log Output
             ```text
             ${{ steps.capture_error.outputs.failed_command }}
             ```
 
             ## 🛠️ Required Action
-            1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }})
-            2. Verify recent code changes
-            3. Re-run workflow after fixes
+            1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }}) for more details.
+            2. Review the failed step and the log output above to diagnose the issue.
+            3. Re-run the workflow after applying the necessary fixes.
           embed-color: 0xe74c3c
           embed-footer-text: "Failure detected at ${{ steps.current-time.outputs.footer_time }}"
           embed-footer-icon-url: "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
@@ -369,9 +376,3 @@ jobs:
         run: |
           echo "$(date +%s)" > last_failure_notification_timestamp_${{ matrix.project }}.txt
 
-      - name: Cache failure notification timestamp
-        if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: last_failure_notification_timestamp_${{ matrix.project }}.txt
-          key: failure-notification-timestamp-${{ matrix.project }}

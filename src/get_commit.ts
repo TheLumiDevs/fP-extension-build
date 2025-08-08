@@ -1,41 +1,27 @@
 import { execSync } from 'child_process';
 
 /**
- * Retrieves the subject of the last git commit.
- * @returns {string} The commit subject.
- * @throws {Error} If the git command fails.
+ * Fetches the latest commit's subject (title) and hash.
+ * @returns {string} The commit title and hash, e.g., "feat: new feature (abcdef1)".
  */
-function getCommitSubject(): string {
+function getLatestCommit(): string {
     try {
-        return execSync('git log -1 --pretty=%s', { encoding: 'utf-8' }).trim();
+        const format = '%s (%h)';
+        const command = `git log -1 --pretty=format:"${format}"`;
+        return execSync(command).toString().trim();
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to execute git command: ${errorMessage}`);
+        throw new Error(`Failed to get latest commit: ${errorMessage}`);
     }
 }
 
-/**
- * Sanitizes a string for use in a Markdown link title by escaping special characters.
- * @param {string} text The text to sanitize.
- * @returns {string} The sanitized text.
- */
-function sanitizeForMarkdownLink(text: string): string {
-    // Escape characters that have special meaning in Markdown link titles: [ and ]
-    return text.replace(/[\[\]]/g, '\\$&');
-}
-
-/**
- * Main script execution.
- */
 function main() {
     try {
-        const commitSubject = getCommitSubject();
-        const sanitizedSubject = sanitizeForMarkdownLink(commitSubject);
-        console.log(sanitizedSubject);
+        const commitMessage = getLatestCommit();
+        console.log(commitMessage);
     } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        // Log the error to stderr
-        console.error(`Failed to get commit info: ${errorMessage}`);
+        console.error(`Failed to generate commit log: ${errorMessage}`);
         process.exit(1);
     }
 }

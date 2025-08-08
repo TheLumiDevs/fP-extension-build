@@ -29,6 +29,7 @@ This repository contains the build scripts and configurations for the fP extensi
 3.  Follow the installation instructions for your browser or userscript manager.
 
 </div>
+</div>
 
 > [!NOTE]
 > For Firefox users, you may need to disable the `xpinstall.signatures.required` setting in `about:config` to install the extension.

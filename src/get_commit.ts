@@ -1,57 +1,24 @@
 import { execSync } from 'child_process';
 
 /**
- * Fetches latest tags from remote and gets commit history since last release
- * @returns {string} Formatted markdown of commits
+ * Fetches the latest commit's subject (title) and hash.
+ * @returns {string} The commit title and hash, e.g., "feat: new feature (abcdef1)".
  */
-function getCommitHistory(): string {
+function getLatestCommit(): string {
     try {
-        // Ensure we have latest tags
-        execSync('git fetch --tags', { stdio: 'inherit' });
-        
-        // Get last two tags sorted by date
-        const tags = execSync('git tag --sort=-creatordate | head -n 2')
-            .toString()
-            .trim()
-            .split('\n');
-
-        const currentTag = tags[0];
-        const previousTag = tags[1] || 'initial-commit';
-
-        // Get commits between last release and HEAD
-        const rawLog = execSync(
-            `git log --pretty=format:"%h%x1f%s%x1f%b%x1f%an%x1e" ${previousTag}..HEAD --no-merges`
-        ).toString().trim();
-
-        return formatCommitLog(rawLog);
+        const format = '%s (%h)';
+        const command = `git log -1 --pretty=format:"${format}"`;
+        return execSync(command).toString().trim();
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to get commit history: ${errorMessage}`);
+        throw new Error(`Failed to get latest commit: ${errorMessage}`);
     }
-}
-
-/**
- * Formats raw git log output into markdown
- */
-function formatCommitLog(rawLog: string): string {
-    if (!rawLog) return '';
-
-    return rawLog.split('\x1e')
-        .map(commit => commit.trim())
-        .filter(commit => commit)
-        .map(line => {
-            const [hash, subject, body, author] = line.split('\x1f');
-            const cleanBody = (body || '').replace(/[\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
-            const fullMessage = [subject, cleanBody].filter(Boolean).join(' - ');
-            return `- ${fullMessage} (${hash || ''}) - ${author || ''}`;
-        })
-        .join('\n');
 }
 
 function main() {
     try {
-        const commitLog = getCommitHistory();
-        console.log(JSON.stringify(commitLog));
+        const commitMessage = getLatestCommit();
+        console.log(commitMessage);
     } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);
         console.error(`Failed to generate commit log: ${errorMessage}`);

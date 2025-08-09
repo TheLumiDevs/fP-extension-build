@@ -274,7 +274,7 @@ jobs:
         id: random_color
         run: echo "embed_color=$(node_modules/.bin/ts-node src/random-color.ts)" >> $GITHUB_OUTPUT
 
-      - name: Send sussess message to Discord
+      - name: Send success message to Discord
         if: steps.create_release.outputs.tag_name != ''
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

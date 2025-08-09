@@ -1,7 +1,6 @@
-import axios from 'axios';
-import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
+import { sendWebhookMessage } from '../api/discord-webhook';
 
 async function sendWebhook() {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
@@ -20,38 +19,26 @@ async function sendWebhook() {
 
   try {
     const payload = JSON.parse(jsonPayload);
+    const files: { name: string; data: Buffer }[] = [];
 
     if (filePaths) {
-      const form = new FormData();
-      form.append('payload_json', jsonPayload);
-      
       const paths = filePaths.split(',').map(p => p.trim());
-      let fileAttached = false;
       for (const filePath of paths) {
         if (fs.existsSync(filePath)) {
           const fileName = path.basename(filePath);
-          form.append('file', fs.createReadStream(filePath), fileName);
-          fileAttached = true;
+          const fileData = fs.readFileSync(filePath);
+          files.push({ name: fileName, data: fileData });
         } else {
           console.warn(`File not found at path: ${filePath}.`);
         }
       }
-
-      if (fileAttached) {
-        await axios.post(webhookUrl, form, {
-          headers: form.getHeaders(),
-        });
-      } else {
-        // If paths were provided but no files were found, send without attachments
-        await axios.post(webhookUrl, payload, {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-    } else {
-      await axios.post(webhookUrl, payload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
     }
+
+    await sendWebhookMessage(webhookUrl, payload.content, {
+      embeds: payload.embeds,
+      components: payload.components,
+      files: files.length > 0 ? files : undefined,
+    });
 
     console.log('Webhook sent successfully.');
   } catch (error: any) {

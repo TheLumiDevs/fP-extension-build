@@ -129,6 +129,9 @@ jobs:
         if: steps.should_run.outputs.decision == 'true'
         run: |
           node_modules/.bin/ts-node src/add-csp.ts ${{ matrix.project }}
+          echo "---- CSP file content for ${{ matrix.project }} ----"
+          cat ${{ matrix.project }}/src/main/csp/index.ts
+          echo "---- End of CSP file ----"
 
       - name: Build extension and userscript
         if: steps.should_run.outputs.decision == 'true'

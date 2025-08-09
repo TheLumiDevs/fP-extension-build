@@ -6,7 +6,23 @@ type Embed = {
   description?: string;
   url?: string;
   color?: number;
+  author?: {
+    name?: string;
+    url?: string;
+    icon_url?: string;
+  };
+  image?: {
+    url?: string;
+  };
+  thumbnail?: {
+    url?: string;
+  };
   fields?: Array<{ name: string; value: string; inline?: boolean }>;
+  footer?: {
+    text: string;
+    icon_url?: string;
+  };
+  timestamp?: string;
 };
 
 type Component = {
@@ -23,6 +39,8 @@ export async function sendWebhookMessage(
   webhookUrl: string,
   content: string,
   options?: {
+    username?: string;
+    avatar_url?: string;
     embeds?: Embed[];
     components?: Component[];
     files?: Array<{ name: string; data: Buffer }>;
@@ -37,6 +55,8 @@ export async function sendWebhookMessage(
   }
 
   const payload = {
+    username: options?.username,
+    avatar_url: options?.avatar_url,
     content,
     embeds: options?.embeds,
     components: options?.components

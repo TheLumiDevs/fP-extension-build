@@ -31,7 +31,10 @@ permissions:
 
 jobs:
   build:
+    name: "Build ${{ matrix.project }}"
     runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 3
     strategy:
       fail-fast: false
       matrix:

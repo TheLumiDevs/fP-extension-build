@@ -1,17 +1,11 @@
-import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { sendWebhookMessage } from '../api/discord-webhook';
 
 async function sendWebhook() {
-  const apiUrl = process.env.API_URL;
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   const jsonPayload = process.env.DISCORD_PAYLOAD;
   const filePaths = process.env.DISCORD_FILE_PATHS;
-
-  if (!apiUrl) {
-    console.error('API_URL is not set.');
-    process.exit(1);
-  }
 
   if (!webhookUrl) {
     console.error('DISCORD_WEBHOOK_URL is not set.');
@@ -40,10 +34,10 @@ async function sendWebhook() {
       }
     }
 
-    await axios.post(apiUrl, {
-      webhookUrl,
-      ...payload,
-      files: files.length > 0 ? files : undefined,
+    const { content, ...options } = payload;
+    await sendWebhookMessage(webhookUrl, content, {
+      ...options,
+      files: files.length > 0 ? files : undefined
     });
 
     console.log('Webhook sent successfully.');

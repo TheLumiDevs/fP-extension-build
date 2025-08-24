@@ -35,7 +35,8 @@ async function sendWebhook() {
     }
 
     const { content, ...options } = payload;
-    await sendWebhookMessage(webhookUrl, content, {
+    const formattedContent = typeof content === 'number' ? content.toString() : content;
+    await sendWebhookMessage(webhookUrl, formattedContent, {
       ...options,
       files: files.length > 0 ? files : undefined
     });

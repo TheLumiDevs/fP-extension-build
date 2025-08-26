@@ -2,7 +2,7 @@ name: Build fakeProfile
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       project:

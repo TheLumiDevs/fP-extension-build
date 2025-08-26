@@ -4,7 +4,8 @@
   "description": "Extension & Userscript Auto Build For Discord Typescript Mod Client",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "send-webhook-test": "ts-node src/send-webhook.ts"
   },
   "repository": {
     "type": "git",

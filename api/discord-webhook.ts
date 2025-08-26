@@ -55,11 +55,11 @@ export async function sendWebhookMessage(
   }
 
   const payload = {
-    username: options?.username,
-    avatar_url: options?.avatar_url,
+    ...(options?.username && { username: options.username }),
+    ...(options?.avatar_url && { avatar_url: options.avatar_url }),
     content,
-    embeds: options?.embeds,
-    components: options?.components
+    ...(options?.embeds && { embeds: options.embeds }),
+    ...(options?.components && { components: options.components })
   };
 
   formData.append('payload_json', JSON.stringify(payload));

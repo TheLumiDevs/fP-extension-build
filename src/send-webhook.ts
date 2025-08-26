@@ -4,7 +4,6 @@ import { sendWebhookMessage } from '../api/discord-webhook';
 
 async function sendWebhook() {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  const jsonPayload = process.env.DISCORD_PAYLOAD;
   const filePaths = process.env.DISCORD_FILE_PATHS;
 
   if (!webhookUrl) {
@@ -12,13 +11,12 @@ async function sendWebhook() {
     process.exit(1);
   }
 
-  if (!jsonPayload) {
-    console.error('DISCORD_PAYLOAD is not set.');
-    process.exit(1);
-  }
-
   try {
-    const payload = JSON.parse(jsonPayload);
+    // Construct payload from individual environment variables
+    const payload = {
+      content: process.env.DISCORD_MESSAGE || '',
+      ...(process.env.DISCORD_OPTIONS ? JSON.parse(process.env.DISCORD_OPTIONS) : {})
+    };
     const files: { name: string; data: Buffer }[] = [];
 
     if (filePaths) {

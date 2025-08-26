@@ -23,3 +23,5 @@ yarn-error.log*
 
 # THE AI GOOFY AHH MOMENT
 /.kilocode
+/bin
+/lib

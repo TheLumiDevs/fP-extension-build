@@ -1,6 +1,9 @@
+/// <reference types="node" />
 import fs from 'fs';
 import path from 'path';
 import { sendWebhookMessage } from '../api/discord-webhook';
+import type { Embed } from '../api/discord-webhook';
+import { Buffer } from 'buffer';
 
 async function sendWebhook() {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
@@ -13,9 +16,23 @@ async function sendWebhook() {
 
   try {
     // Construct payload from individual environment variables
+    const parsedOptions = process.env.DISCORD_OPTIONS ? JSON.parse(process.env.DISCORD_OPTIONS) : {};
+    // Ensure embeds are always an array and validate structure
+    if (parsedOptions.embeds) {
+      parsedOptions.embeds = Array.isArray(parsedOptions.embeds)
+        ? parsedOptions.embeds
+        : [parsedOptions.embeds];
+      // Validate required embed fields
+      parsedOptions.embeds = parsedOptions.embeds.map((embed: Embed) => ({
+        title: embed.title || 'Default Title',
+        description: embed.description || 'Default Description',
+        color: embed.color || 0x7289DA, // Discord blurple default
+        ...embed as unknown as Embed
+      }));
+    }
     const payload = {
       content: process.env.DISCORD_MESSAGE || '',
-      ...(process.env.DISCORD_OPTIONS ? JSON.parse(process.env.DISCORD_OPTIONS) : {})
+      ...parsedOptions
     };
     const files: { name: string; data: Buffer }[] = [];
 

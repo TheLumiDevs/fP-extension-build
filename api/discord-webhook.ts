@@ -1,7 +1,7 @@
 import axios from 'axios';
 import FormData from 'form-data';
 
-type Embed = {
+export interface Embed {
   title?: string;
   description?: string;
   url?: string;

@@ -27,7 +27,7 @@ async function sendWebhook() {
         title: embed.title || 'Default Title',
         description: embed.description || 'Default Description',
         color: embed.color || 0x7289DA, // Discord blurple default
-        ...embed as unknown as Embed
+        ...embed
       }));
     }
     const payload = {
@@ -51,6 +51,7 @@ async function sendWebhook() {
 
     const { content, ...options } = payload;
     const formattedContent = typeof content === 'number' ? content.toString() : content;
+    console.log('Sending webhook with payload:', JSON.stringify({ content: formattedContent, ...options }, null, 2));
     await sendWebhookMessage(webhookUrl, formattedContent, {
       ...options,
       files: files.length > 0 ? files : undefined

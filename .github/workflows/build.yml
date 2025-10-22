@@ -285,7 +285,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_FILE_PATHS: "${{ matrix.project }}/dist/extension-chrome.zip,${{ matrix.project }}/dist/extension-firefox.zip,${{ matrix.project }}/dist/${{ matrix.userscript_name }}"
-          DISCORD_PAYLOAD: |
+          DISCORD_OPTIONS: |
             {
               "content": "A new build for **${{ matrix.project }}** is available!",
               "embeds": [
@@ -350,7 +350,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_FILE_PATHS: ${{ steps.capture_error.outputs.log_file }}
-          DISCORD_PAYLOAD: |
+          DISCORD_OPTIONS: |
             {
               "content": "The build for **${{ matrix.project }}** has failed.",
               "embeds": [

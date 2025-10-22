@@ -278,7 +278,7 @@ jobs:
       - name: Get random color
         if: steps.create_release.outputs.tag_name != ''
         id: random_color
-        run: echo "embed_color=$(node_modules/.bin/ts-node src/random-color.ts)" >> $GITHUB_OUTPUT
+        run: echo "embed_color=$(node_modules/.bin/ts-node src/random-color.ts | sed 's/\x1b\[[0-9;]*m//g')" >> $GITHUB_OUTPUT
 
       - name: Send success message to Discord
         if: steps.create_release.outputs.tag_name != ''

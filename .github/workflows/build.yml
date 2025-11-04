@@ -42,7 +42,7 @@ jobs:
         include:
           - project: Equicord
             repo: Equicord/Equicord
-            userscript_name: Vencord.user.js
+            userscript_name: Equicord.user.js
           - project: Vencord
             repo: Vendicated/Vencord
             userscript_name: Vencord.user.js

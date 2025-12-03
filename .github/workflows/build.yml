@@ -354,4 +354,3 @@ jobs:
         if: failure() && steps.decide_failure_notification.outputs.should_notify == 'true'
         run: |
           echo "$(date +%s)" > last_failure_notification_timestamp_${{ matrix.project }}.txt
-

@@ -230,26 +230,20 @@ jobs:
           echo "Assets:"
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
 
-          # Use a static command based on the prerelease flag to avoid dynamic construction
-          if [[ -n "$prerelease_flag" ]]; then
-            echo "Creating a prerelease."
-            gh release create "$tag_name" \
-              "$chrome_asset" \
-              "$firefox_asset" \
-              "$userscript_asset" \
-              --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes-file "$notes_file" \
-              --prerelease
-          else
-            echo "Creating a stable release."
-            gh release create "$tag_name" \
-              "$chrome_asset" \
-              "$firefox_asset" \
-              "$userscript_asset" \
-              --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" \
-              --notes-file "$notes_file" \
-              --latest
-          fi
+          # Create a temporary script to avoid argument list too long error
+          script_file=$(mktemp)
+          echo '#!/bin/bash' > "$script_file"
+          echo 'set -exo pipefail' >> "$script_file"
+          echo 'if [[ -n "$prerelease_flag" ]]; then' >> "$script_file"
+          echo '  echo "Creating a prerelease."' >> "$script_file"
+          echo '  gh release create "$tag_name" "$chrome_asset" "$firefox_asset" "$userscript_asset" --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" --notes-file "$notes_file" --prerelease' >> "$script_file"
+          echo 'else' >> "$script_file"
+          echo '  echo "Creating a stable release."' >> "$script_file"
+          echo '  gh release create "$tag_name" "$chrome_asset" "$firefox_asset" "$userscript_asset" --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" --notes-file "$notes_file" --latest' >> "$script_file"
+          echo 'fi' >> "$script_file"
+          chmod +x "$script_file"
+          "$script_file"
+          rm "$script_file"
 
           release_url=$(gh release view "$tag_name" --json url -q .url)
           
@@ -311,7 +305,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROJECT_NAME: ${{ matrix.project }}
         run: |
-          log_data=$(ts-node src/get-failed-step-log.ts)
+          npm install
+          log_data=$(node_modules/.bin/ts-node src/get-failed-step-log.ts)
           log_content=$(echo "$log_data" | jq -r .log)
           step_name=$(echo "$log_data" | jq -r .stepName)
           log_file=$(echo "$log_data" | jq -r .logFile)
@@ -350,21 +345,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_FILE_PATHS: ${{ steps.capture_error.outputs.log_file }}
-          DISCORD_OPTIONS: |
-            {
-              "content": "The build for **${{ matrix.project }}** has failed.",
-              "embeds": [
-                {
-                  "title": "🚨 ${{ matrix.project }} Build Failed - Action Required",
-                  "description": "## ❌ Build Failure Details\n**Project:** ${{ matrix.project }}\n**Failed Step:** `${{ steps.capture_error.outputs.error_step }}`\n**Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})\n**Branch:** `${{ github.ref }}`\n\n## 📝 Log Output\n```text\n${{ steps.capture_error.outputs.failed_command }}\n```\n\n## 🛠️ Required Action\n1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }}) for more details.\n2. Review the failed step and the log output above to diagnose the issue.\n3. Re-run the workflow after applying the necessary fixes.",
-                  "color": 0xe74c3c,
-                  "footer": {
-                    "text": "Failure detected at ${{ steps.current-time.outputs.footer_time }}",
-                    "icon_url": "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"
-                  }
-                }
-              ]
-            }
+          DISCORD_OPTIONS: '{"content": "The build for **${{ matrix.project }}** has failed.", "embeds": [{"title": "🚨 ${{ matrix.project }} Build Failed - Action Required", "description": "## ❌ Build Failure Details\\n**Project:** ${{ matrix.project }}\\n**Failed Step:** `${{ steps.capture_error.outputs.error_step }}`\\n**Workflow Run:** [#${{ github.run_id }}](${{ steps.capture_error.outputs.log_url }})\\n**Branch:** `${{ github.ref }}`\\n\\n## 📝 Log Output\\n```text\\n${{ steps.capture_error.outputs.failed_command }}\\n```\\n\\n## 🛠️ Required Action\\n1. Check the [complete logs](${{ steps.capture_error.outputs.log_url }}) for more details.\\n2. Review the failed step and the log output above to diagnose the issue.\\n3. Re-run the workflow after applying the necessary fixes.", "color": 0xe74c3c, "footer": {"text": "Failure detected at ${{ steps.current-time.outputs.footer_time }}", "icon_url": "https://avatars.githubusercontent.com/u/221838119?s=200&v=4"}}]}'
         run: |
           npm install
           node_modules/.bin/ts-node src/send-webhook.ts

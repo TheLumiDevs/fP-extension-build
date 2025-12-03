@@ -47,7 +47,6 @@ jobs:
             repo: Vendicated/Vencord
             userscript_name: Vencord.user.js
 
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -67,13 +66,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Cache last successful commit SHA
-        id: cache-sha
-        uses: actions/cache@v4.2.3
-        with:
-          path: last_successful_sha_${{ matrix.project }}.txt
-          key: ${{ matrix.project }}-sha-cache
-
       - name: Get commit info
         id: get_commit_info
         working-directory: ${{ matrix.project }}
@@ -87,23 +79,12 @@ jobs:
           fi
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           SHA_DISPLAY="[\`$(git rev-parse --short=7 HEAD)\`](https://github.com/${{ matrix.repo }}/commit/$(git rev-parse HEAD))"
-          LAST_BUILT_SHA=""
-          if [[ -f ../last_successful_sha_${{ matrix.project }}.txt ]]; then
-            LAST_BUILT_SHA=$(cat ../last_successful_sha_${{ matrix.project }}.txt)
-            LAST_BUILT_SHA_SHORT=$(git rev-parse --short=7 $LAST_BUILT_SHA)
-            echo "last_commit_sha=${LAST_BUILT_SHA}" >> $GITHUB_OUTPUT
-            echo "last_commit_sha_short=${LAST_BUILT_SHA_SHORT}" >> $GITHUB_OUTPUT
-            COMMIT_LOG=$(git log -10 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
-          else
-            COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
-          fi
+          COMMIT_LOG=$(git log -5 --pretty=format:"- %s - %an")
           echo "sha_display=${SHA_DISPLAY}" >> $GITHUB_OUTPUT
-          # Properly handle multi-line output with JSON encoding
           echo "commit_log<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$COMMIT_LOG" | jq -Rs . >> $GITHUB_OUTPUT
+          echo -e "$COMMIT_LOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-          # Handle Co-authored-by trailers properly
           COMMIT_MSG=$(../node_modules/.bin/ts-node ../src/get_commit.ts)
           echo "commit_message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
 
@@ -175,6 +156,7 @@ jobs:
             git tag -fa "$tag_name" -m "Release $tag_name"
             git push origin "$tag_name"
           fi
+
       - name: Create Release and Upload Assets
         if: steps.should_run.outputs.decision == 'true' && (github.event_name == 'schedule' || github.event.inputs.release == 'true' || github.event.inputs.run_as_schedule == 'true')
         id: create_release
@@ -218,39 +200,28 @@ jobs:
           echo "userscript_size=$(numfmt --to=iec-i --suffix=B --format=%.2f $userscript_size)" >> $GITHUB_OUTPUT
           echo "userscript_sha256=$userscript_sha256" >> $GITHUB_OUTPUT
 
-          # Create temp notes file safely
+          # Create notes
           notes_file=$(mktemp)
-          {
-            echo "### ${{ matrix.project }} commit"
-            echo
-            echo "$COMMIT_LOG_JSON" | jq -r
-          } > "$notes_file"
+          echo "### ${{ matrix.project }} commit" > "$notes_file"
+          echo "" >> "$notes_file"
+          echo "$COMMIT_LOG_JSON" >> "$notes_file"
 
           echo "Creating new release $tag_name."
           echo "Assets:"
           ls -l "$chrome_asset" "$firefox_asset" "$userscript_asset"
 
-          # Create a temporary script to avoid argument list too long error
-          script_file=$(mktemp)
-          echo '#!/bin/bash' > "$script_file"
-          echo 'set -exo pipefail' >> "$script_file"
-          echo 'if [[ -n "$prerelease_flag" ]]; then' >> "$script_file"
-          echo '  echo "Creating a prerelease."' >> "$script_file"
-          echo '  gh release create "$tag_name" "$chrome_asset" "$firefox_asset" "$userscript_asset" --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" --notes-file "$notes_file" --prerelease' >> "$script_file"
-          echo 'else' >> "$script_file"
-          echo '  echo "Creating a stable release."' >> "$script_file"
-          echo '  gh release create "$tag_name" "$chrome_asset" "$firefox_asset" "$userscript_asset" --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" --notes-file "$notes_file" --latest' >> "$script_file"
-          echo 'fi' >> "$script_file"
-          chmod +x "$script_file"
-          "$script_file"
-          rm "$script_file"
+          # Create release
+          if [[ -n "$prerelease_flag" ]]; then
+            gh release create "$tag_name" "$chrome_asset" "$firefox_asset" "$userscript_asset" --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" --notes-file "$notes_file" --prerelease
+          else
+            gh release create "$tag_name" "$chrome_asset" "$firefox_asset" "$userscript_asset" --title "fakeProfile auto build for ${{ matrix.project }} - ${{ steps.current-time.outputs.date }}${title_suffix}" --notes-file "$notes_file"
+          fi
 
           release_url=$(gh release view "$tag_name" --json url -q .url)
-          
+
           # Cleanup
           rm "$notes_file"
 
-          echo -n "${{ steps.get_commit_info.outputs.commit_sha }}" > last_successful_sha_${{ matrix.project }}.txt
           echo "html_url=${release_url}" >> $GITHUB_OUTPUT
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           echo "title_suffix=${title_suffix}" >> $GITHUB_OUTPUT
@@ -316,14 +287,6 @@ jobs:
           echo "error_step=$step_name" >> $GITHUB_OUTPUT
           echo "log_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
           echo "log_file=$log_file" >> $GITHUB_OUTPUT
-
-      - name: Restore last failure notification timestamp
-        if: failure()
-        id: restore_failure_ts
-        uses: actions/cache@v4
-        with:
-          path: last_failure_notification_timestamp_${{ matrix.project }}.txt
-          key: failure-notification-timestamp-${{ matrix.project }}
 
       - name: Decide whether to send failure notification
         if: failure()

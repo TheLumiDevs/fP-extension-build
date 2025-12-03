@@ -93,7 +93,7 @@ jobs:
             LAST_BUILT_SHA_SHORT=$(git rev-parse --short=7 $LAST_BUILT_SHA)
             echo "last_commit_sha=${LAST_BUILT_SHA}" >> $GITHUB_OUTPUT
             echo "last_commit_sha_short=${LAST_BUILT_SHA_SHORT}" >> $GITHUB_OUTPUT
-            COMMIT_LOG=$(git log --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
+            COMMIT_LOG=$(git log -10 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)" $LAST_BUILT_SHA..HEAD)
           else
             COMMIT_LOG=$(git log -1 --pretty=format:"- %s - %an - [%h](https://github.com/${{ matrix.repo }}/commit/%H)")
           fi

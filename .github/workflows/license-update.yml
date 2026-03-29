@@ -1,4 +1,6 @@
 name: Notify on LICENSE update
+permissions:
+  contents: read
 
 on:
   push:
